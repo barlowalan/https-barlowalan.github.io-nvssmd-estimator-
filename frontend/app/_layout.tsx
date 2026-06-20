@@ -2,6 +2,8 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { LogBox } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 
@@ -29,5 +31,17 @@ export default function RootLayout() {
   // the app — icons will tofu, but the app still boots.
   if (!loaded && !error) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="project/new" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+          <Stack.Screen name="project/[id]/index" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="project/[id]/add-item" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+          <Stack.Screen name="equipment/new" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+        </Stack>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
