@@ -8,6 +8,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +28,7 @@ export default function AddItem() {
   const [unitCost, setUnitCost] = useState("0");
   const [hours, setHours] = useState("0");
   const [role, setRole] = useState<keyof LaborRates>("technician");
+  const [useSellPrice, setUseSellPrice] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useFocusEffect(
@@ -38,7 +40,16 @@ export default function AddItem() {
   const onSelectEq = (eq: Equipment) => {
     setSelectedEq(eq);
     setDescription(`${eq.manufacturer} ${eq.model}`);
-    setUnitCost(String(eq.cost));
+    const price = useSellPrice && eq.sell_price ? eq.sell_price : eq.cost;
+    setUnitCost(String(price));
+  };
+
+  const onToggleSellPrice = (next: boolean) => {
+    setUseSellPrice(next);
+    if (selectedEq) {
+      const price = next && selectedEq.sell_price ? selectedEq.sell_price : selectedEq.cost;
+      setUnitCost(String(price));
+    }
   };
 
   const onSubmit = async () => {
@@ -78,24 +89,44 @@ export default function AddItem() {
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 140 }}>
           {equipment.length > 0 && (
             <>
+              <View style={styles.sellToggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sellToggleTitle}>Use Sell Price</Text>
+                  <Text style={styles.sellToggleSub}>
+                    Apply the proposal sell price instead of dealer cost when picking from library.
+                  </Text>
+                </View>
+                <Switch
+                  testID="toggle-sell-price"
+                  value={useSellPrice}
+                  onValueChange={onToggleSellPrice}
+                  trackColor={{ true: colors.brandPrimary, false: colors.border }}
+                />
+              </View>
               <Text style={styles.label}>Pick from library (optional)</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.md }}
               >
-                {equipment.map((eq) => (
-                  <Pressable
-                    key={eq.id}
-                    testID={`pick-eq-${eq.id}`}
-                    onPress={() => onSelectEq(eq)}
-                    style={[styles.eqChip, selectedEq?.id === eq.id && styles.eqChipActive]}
-                  >
-                    <Text style={[styles.eqChipText, selectedEq?.id === eq.id && styles.eqChipTextActive]}>
-                      {eq.manufacturer} {eq.model}
-                    </Text>
-                  </Pressable>
-                ))}
+                {equipment.map((eq) => {
+                  const price = useSellPrice && eq.sell_price ? eq.sell_price : eq.cost;
+                  return (
+                    <Pressable
+                      key={eq.id}
+                      testID={`pick-eq-${eq.id}`}
+                      onPress={() => onSelectEq(eq)}
+                      style={[styles.eqChip, selectedEq?.id === eq.id && styles.eqChipActive]}
+                    >
+                      <Text style={[styles.eqChipText, selectedEq?.id === eq.id && styles.eqChipTextActive]}>
+                        {eq.manufacturer} {eq.model}
+                      </Text>
+                      <Text style={[styles.eqChipPrice, selectedEq?.id === eq.id && styles.eqChipPriceActive]}>
+                        ${price.toFixed(2)} {useSellPrice && eq.sell_price ? "sell" : "cost"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </>
           )}
@@ -207,15 +238,31 @@ const styles = StyleSheet.create({
   eqChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceSecondary,
     flexShrink: 0,
+    alignItems: "flex-start",
   },
   eqChipActive: { borderColor: colors.brandPrimary, backgroundColor: colors.brandTertiary },
   eqChipText: { fontSize: fontSize.sm, color: colors.onSurface, fontWeight: "600" },
   eqChipTextActive: { color: colors.onBrandTertiary },
+  eqChipPrice: { fontSize: 11, color: colors.muted, marginTop: 2, fontWeight: "600" },
+  eqChipPriceActive: { color: colors.brandPrimary },
+  sellToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  sellToggleTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.onSurface },
+  sellToggleSub: { fontSize: 11, color: colors.muted, marginTop: 2, lineHeight: 16 },
   rolesGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   rolePill: {
     paddingHorizontal: spacing.md,

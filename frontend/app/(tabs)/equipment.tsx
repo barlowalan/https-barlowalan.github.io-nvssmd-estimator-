@@ -114,7 +114,8 @@ export default function EquipmentScreen() {
                   {item.manufacturer} {item.model}
                 </Text>
                 <Text style={styles.rowSub}>
-                  {item.category} · {currency(item.cost)} · {item.lead_time_days}d lead
+                  {item.category} · ${item.cost.toFixed(2)} cost
+                  {item.sell_price ? ` · $${item.sell_price.toFixed(2)} sell` : ""} · {item.lead_time_days}d lead
                 </Text>
                 <View style={styles.tagsRow}>
                   {item.ndaa && (

@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import {
@@ -19,6 +21,7 @@ import {
   Project,
   EstimateItem,
   EstimateSummary,
+  ProjectDocuments,
   ROLE_LABELS,
 } from "@/src/api";
 
@@ -31,6 +34,7 @@ export default function ProjectDetail() {
   const [estimate, setEstimate] = useState<EstimateSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -69,6 +73,33 @@ export default function ProjectDetail() {
     router.replace("/");
   };
 
+  const onSharePdf = async () => {
+    if (!id || !project || !estimate) return;
+    setSharing(true);
+    try {
+      let docs: ProjectDocuments | null = null;
+      try {
+        docs = await api.getDocuments(id);
+      } catch {
+        docs = null;
+      }
+      const html = buildProjectHtml(project, estimate, items, docs);
+      const { uri } = await Print.printToFileAsync({ html });
+      const ok = await Sharing.isAvailableAsync();
+      if (ok) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "application/pdf",
+          dialogTitle: `${project.name} - Project Estimate`,
+          UTI: "com.adobe.pdf",
+        });
+      }
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setSharing(false);
+    }
+  };
+
   if (loading || !project || !estimate) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -86,9 +117,24 @@ export default function ProjectDetail() {
           <Ionicons name="chevron-back" size={26} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{project.name}</Text>
-        <Pressable testID="delete-project" onPress={onDeleteProject} hitSlop={10}>
-          <Ionicons name="trash-outline" size={22} color={colors.error} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            testID="share-project-pdf"
+            onPress={onSharePdf}
+            disabled={sharing}
+            hitSlop={10}
+            style={styles.headerAction}
+          >
+            {sharing ? (
+              <ActivityIndicator color={colors.brandPrimary} size="small" />
+            ) : (
+              <Ionicons name="share-outline" size={22} color={colors.brandPrimary} />
+            )}
+          </Pressable>
+          <Pressable testID="delete-project" onPress={onDeleteProject} hitSlop={10} style={styles.headerAction}>
+            <Ionicons name="trash-outline" size={22} color={colors.error} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -355,4 +401,177 @@ const styles = StyleSheet.create({
   },
   docTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.onSurface },
   docSub: { fontSize: 11, color: colors.muted, marginTop: 2 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  headerAction: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
+
+function escapeHtml(s: string) {
+  return (s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br/>");
+}
+
+function buildProjectHtml(
+  project: Project,
+  est: EstimateSummary,
+  items: EstimateItem[],
+  docs: ProjectDocuments | null
+): string {
+  const today = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const c = project.counts;
+  const itemRows = items
+    .map(
+      (it) => `
+      <tr>
+        <td>${escapeHtml(it.description)}</td>
+        <td class="num">${it.quantity}</td>
+        <td class="num">$${it.unit_cost.toFixed(2)}</td>
+        <td class="num">${it.labor_hours}</td>
+        <td>${escapeHtml(ROLE_LABELS[it.labor_role] || it.labor_role)}</td>
+        <td class="num">$${(it.quantity * it.unit_cost).toFixed(2)}</td>
+      </tr>`
+    )
+    .join("");
+
+  const docSection = (title: string, fields: { label: string; value: string }[]) => {
+    const rendered = fields
+      .filter((f) => (f.value || "").trim())
+      .map(
+        (f) => `<div class="doc-field"><div class="doc-label">${f.label}</div><p>${escapeHtml(f.value)}</p></div>`
+      )
+      .join("");
+    if (!rendered) return "";
+    return `<section class="doc-section"><h2>${title}</h2>${rendered}</section>`;
+  };
+
+  const scope = docs?.scope;
+  const proposal = docs?.proposal;
+  const boe = docs?.boe;
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8" /><title>${escapeHtml(project.name)} — Project Estimate</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #1c1c1e; padding: 32px 36px; line-height: 1.5; }
+  header { border-bottom: 2px solid #5B7B6D; padding-bottom: 14px; margin-bottom: 20px; }
+  .brand { color: #5B7B6D; font-weight: 700; letter-spacing: 2px; font-size: 11px; text-transform: uppercase; }
+  h1 { font-size: 26px; margin: 4px 0 6px; }
+  .meta { color: #6c6c70; font-size: 12px; }
+  h2 { color: #3A5A4C; font-size: 14px; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 22px; margin-bottom: 8px; border-bottom: 1px solid #E5E5EA; padding-bottom: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .card { background: #F9F9F7; border: 1px solid #E5E5EA; border-radius: 6px; padding: 8px 10px; }
+  .card .lbl { font-size: 10px; color: #6c6c70; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .val { font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .summary { background: #2C2C2E; color: #F9F9F7; border-radius: 8px; padding: 18px 20px; margin-top: 8px; }
+  .summary .lbl-light { color: #BBD1C7; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .summary .total { font-size: 30px; font-weight: 800; margin-top: 2px; }
+  .summary table { width: 100%; margin-top: 10px; border-top: 1px solid #444; padding-top: 8px; }
+  .summary td { padding: 3px 0; font-size: 12px; }
+  .summary td.num { text-align: right; font-weight: 600; }
+  table.items { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  table.items th, table.items td { border-bottom: 1px solid #E5E5EA; padding: 6px 8px; font-size: 11.5px; text-align: left; }
+  table.items th { background: #F0F0EE; font-weight: 600; }
+  table.items td.num, table.items th.num { text-align: right; }
+  section.doc-section .doc-field { margin: 10px 0; }
+  section.doc-section .doc-label { font-size: 11px; color: #5B7B6D; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  section.doc-section p { white-space: pre-wrap; margin: 4px 0 0; font-size: 12px; }
+  footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #E5E5EA; color: #8E8E93; font-size: 10.5px; text-align: center; }
+</style></head>
+<body>
+  <header>
+    <div class="brand">Security Estimator Pro</div>
+    <h1>${escapeHtml(project.name)}</h1>
+    <div class="meta">
+      ${escapeHtml(project.customer || "—")} · ${escapeHtml(project.site || "—")} · ${escapeHtml(project.project_type)} · Generated ${today}
+    </div>
+  </header>
+
+  <section>
+    <h2>Estimate Summary</h2>
+    <div class="summary">
+      <div class="lbl-light">Estimated Sell Price</div>
+      <div class="total">$${est.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <table>
+        <tr><td>Material</td><td class="num">$${est.material_cost.toFixed(2)}</td></tr>
+        <tr><td>Labor</td><td class="num">$${est.labor_cost.toFixed(2)}</td></tr>
+        <tr><td><strong>Subtotal</strong></td><td class="num"><strong>$${est.subtotal.toFixed(2)}</strong></td></tr>
+        <tr><td>Overhead (${project.overhead_pct.toFixed(1)}%)</td><td class="num">$${est.overhead.toFixed(2)}</td></tr>
+        <tr><td>Profit (${project.profit_pct.toFixed(1)}%)</td><td class="num">$${est.profit.toFixed(2)}</td></tr>
+        <tr><td>Contingency (${project.contingency_pct.toFixed(1)}%)</td><td class="num">$${est.contingency.toFixed(2)}</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>System Counts</h2>
+    <div class="grid">
+      <div class="card"><div class="lbl">Cameras</div><div class="val">${c.cameras}</div></div>
+      <div class="card"><div class="lbl">ACS Doors</div><div class="val">${c.doors}</div></div>
+      <div class="card"><div class="lbl">IDS Points</div><div class="val">${c.ids_points}</div></div>
+      <div class="card"><div class="lbl">Intercoms</div><div class="val">${c.intercoms}</div></div>
+      <div class="card"><div class="lbl">Cable Runs</div><div class="val">${c.cable_runs}</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Line Items (${items.length})</h2>
+    ${
+      items.length === 0
+        ? '<p style="color:#8E8E93;font-size:12px;">No line items recorded.</p>'
+        : `<table class="items">
+            <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Cost</th><th class="num">Hours</th><th>Role</th><th class="num">Material</th></tr></thead>
+            <tbody>${itemRows}</tbody>
+          </table>`
+    }
+  </section>
+
+  ${
+    scope
+      ? docSection("Scope of Work", [
+          { label: "Overview", value: scope.overview },
+          { label: "Inclusions", value: scope.inclusions },
+          { label: "Exclusions", value: scope.exclusions },
+          { label: "Testing", value: scope.testing },
+          { label: "Training", value: scope.training },
+          { label: "Warranty", value: scope.warranty },
+        ])
+      : ""
+  }
+  ${
+    proposal
+      ? docSection("Proposal", [
+          { label: "Executive Summary", value: proposal.executive_summary },
+          { label: "Technical Approach", value: proposal.technical_approach },
+          { label: "Price Summary", value: proposal.price_summary },
+          { label: "Assumptions", value: proposal.assumptions },
+          { label: "Exclusions", value: proposal.exclusions },
+          { label: "Acceptance", value: proposal.acceptance },
+        ])
+      : ""
+  }
+  ${
+    boe
+      ? docSection("Basis of Estimate", [
+          { label: "Basis of Labor", value: boe.basis_of_labor },
+          { label: "Basis of Material", value: boe.basis_of_material },
+          { label: "Risk Factors", value: boe.risk_factors },
+          { label: "Schedule Assumptions", value: boe.schedule_assumptions },
+          { label: "Clarifications", value: boe.clarifications },
+        ])
+      : ""
+  }
+
+  <footer>Confidential — for the addressee only.</footer>
+</body></html>`;
+}

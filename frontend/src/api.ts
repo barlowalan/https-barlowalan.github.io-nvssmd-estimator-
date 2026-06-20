@@ -150,6 +150,14 @@ export const api = {
     }).then((r) =>
       h<{ filename: string; created: number; skipped: number; errors: string[] }>(r)
     ),
+  importEquipmentFile: (file_b64: string, filename: string) =>
+    fetch(`${BASE}/api/equipment/import-file`, {
+      method: "POST",
+      headers: J,
+      body: JSON.stringify({ file_b64, filename }),
+    }).then((r) =>
+      h<{ filename: string; created: number; skipped: number; errors: string[] }>(r)
+    ),
 
   // Labor
   getRates: () => fetch(`${BASE}/api/labor-rates`).then((r) => h<LaborRates>(r)),

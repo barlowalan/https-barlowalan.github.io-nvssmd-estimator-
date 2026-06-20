@@ -72,6 +72,12 @@ class ImportRow(BaseModel):
     manufacturer_default: Optional[str] = None
 
 
+class ImportFile(BaseModel):
+    file_b64: str
+    filename: str
+    manufacturer_default: Optional[str] = None
+
+
 class ImportResult(BaseModel):
     filename: str
     created: int
@@ -289,6 +295,55 @@ def _parse_float(s: str) -> float:
         return 0.0
 
 
+def _build_doc_from_row(row: dict, manufacturer_default: Optional[str]) -> tuple[Optional[dict], Optional[str]]:
+    """Map a CSV/XLSX/PDF row dict (header→value) to an Equipment doc. Returns (doc, error)."""
+    manufacturer = _pick(row, ["Manufacturer", "Brand", "Vendor"]) or (manufacturer_default or "")
+    part_number = _pick(row, ["Part Number", "PartNumber", "PN", "SKU", "Model Number", "ModelNumber"])
+    description = _pick(row, ["Description", "Model", "Name", "Product"])
+    system = _pick(row, ["System", "Category", "Type", "System Category"])
+
+    if part_number and description:
+        model = f"{part_number} — {description}"
+    else:
+        model = description or part_number
+
+    if not manufacturer or not model:
+        return None, "missing manufacturer or model"
+
+    category = _map_category(system)
+    msrp = _parse_float(_pick(row, ["MSRP / List Price", "MSRP/List Price", "MSRP", "List Price", "Price"]))
+    cost = _parse_float(_pick(row, ["Dealer Cost", "Cost", "Net Cost", "Unit Cost"]))
+    sell = _parse_float(_pick(row, ["Proposal Sell Price", "Sell Price", "Sell", "Customer Price"]))
+
+    if cost == 0 and msrp > 0:
+        disc = _parse_float(_pick(row, ["Dealer Discount %", "Discount %", "Discount"]))
+        if 0 < disc <= 1:
+            cost = round(msrp * (1 - disc), 2)
+        elif disc > 1:
+            cost = round(msrp * (1 - disc / 100.0), 2)
+
+    ndaa_raw = _pick(row, ["NDAA", "NDAA Compliant", "Compliant"]).lower()
+    ndaa = ndaa_raw in ("y", "yes", "true", "1", "compliant")
+
+    lead = int(_parse_float(_pick(row, ["Lead Time", "Lead Days", "Lead Time Days"]) or "0"))
+    warranty_raw = _parse_float(_pick(row, ["Warranty", "Warranty Years", "Warranty (yrs)"]) or "1") or 1
+    warranty = int(warranty_raw)
+
+    return {
+        "id": str(uuid.uuid4()),
+        "manufacturer": manufacturer,
+        "model": model,
+        "category": category,
+        "cost": cost,
+        "ndaa": ndaa,
+        "lead_time_days": lead,
+        "warranty_years": warranty,
+        "part_number": part_number,
+        "msrp": msrp,
+        "sell_price": sell,
+    }, None
+
+
 @api_router.post("/equipment/import", response_model=ImportResult)
 async def import_equipment(payload: ImportRow):
     import csv
@@ -304,65 +359,143 @@ async def import_equipment(payload: ImportRow):
     errors: List[str] = []
     docs_to_insert = []
 
-    for idx, row in enumerate(reader, start=2):  # header is row 1
-        try:
-            manufacturer = _pick(row, ["Manufacturer", "Brand", "Vendor"]) or (payload.manufacturer_default or "")
-            part_number = _pick(row, ["Part Number", "PartNumber", "PN", "SKU", "Model Number", "ModelNumber"])
-            description = _pick(row, ["Description", "Model", "Name", "Product"])
-            system = _pick(row, ["System", "Category", "Type"])
-
-            # Build model display: PN + description
-            if part_number and description:
-                model = f"{part_number} — {description}"
-            else:
-                model = description or part_number
-
-            if not manufacturer or not model:
-                skipped += 1
-                errors.append(f"row {idx}: missing manufacturer or model")
-                continue
-
-            category = _map_category(system)
-            msrp = _parse_float(_pick(row, ["MSRP / List Price", "MSRP", "List Price", "Price"]))
-            cost = _parse_float(_pick(row, ["Dealer Cost", "Cost", "Net Cost", "Unit Cost"]))
-            sell = _parse_float(_pick(row, ["Proposal Sell Price", "Sell Price", "Sell", "Customer Price"]))
-
-            # Fallback: if no Dealer Cost but we have MSRP and discount %, derive it
-            if cost == 0 and msrp > 0:
-                disc = _parse_float(_pick(row, ["Dealer Discount %", "Discount %", "Discount"]))
-                if disc > 0:
-                    cost = round(msrp * (1 - disc / 100.0), 2)
-
-            ndaa_raw = _pick(row, ["NDAA", "NDAA Compliant", "Compliant"]).lower()
-            ndaa = ndaa_raw in ("y", "yes", "true", "1", "compliant")
-
-            lead = int(_parse_float(_pick(row, ["Lead Time", "Lead Days", "Lead Time Days"]) or "0"))
-            warranty = int(_parse_float(_pick(row, ["Warranty", "Warranty Years", "Warranty (yrs)"]) or "1") or 1)
-
-            docs_to_insert.append({
-                "id": str(uuid.uuid4()),
-                "manufacturer": manufacturer,
-                "model": model,
-                "category": category,
-                "cost": cost,
-                "ndaa": ndaa,
-                "lead_time_days": lead,
-                "warranty_years": warranty,
-                "part_number": part_number,
-                "msrp": msrp,
-                "sell_price": sell,
-            })
-            created += 1
-        except Exception as ex:  # pragma: no cover
+    for idx, row in enumerate(reader, start=2):
+        doc, err = _build_doc_from_row(row, payload.manufacturer_default)
+        if err:
             skipped += 1
-            errors.append(f"row {idx}: {ex}")
+            errors.append(f"row {idx}: {err}")
+            continue
+        docs_to_insert.append(doc)
+        created += 1
 
     if docs_to_insert:
         await db.equipment.insert_many(docs_to_insert)
 
-    # Cap error list so response stays small
     return ImportResult(
         filename=payload.filename or "upload.csv",
+        created=created,
+        skipped=skipped,
+        errors=errors[:20],
+    )
+
+
+def _rows_from_xlsx(data: bytes) -> List[dict]:
+    import openpyxl
+    import io as _io
+    wb = openpyxl.load_workbook(_io.BytesIO(data), data_only=True, read_only=True)
+    out: List[dict] = []
+    for ws in wb.worksheets:
+        rows_iter = ws.iter_rows(values_only=True)
+        header: List[str] = []
+        for r in rows_iter:
+            if not header:
+                header = [str(c).strip() if c is not None else "" for c in r]
+                # Only accept sheets that look like data tables (>=2 non-empty headers)
+                if sum(1 for h in header if h) < 2:
+                    header = []
+                continue
+            if all(c is None or str(c).strip() == "" for c in r):
+                continue
+            row_dict = {}
+            for i, h in enumerate(header):
+                if not h:
+                    continue
+                v = r[i] if i < len(r) else None
+                row_dict[h] = "" if v is None else str(v)
+            if any(v for v in row_dict.values()):
+                out.append(row_dict)
+    return out
+
+
+def _rows_from_pdf(data: bytes) -> List[dict]:
+    import pdfplumber
+    import io as _io
+    out: List[dict] = []
+    with pdfplumber.open(_io.BytesIO(data)) as pdf:
+        for page in pdf.pages:
+            for table in (page.extract_tables() or []):
+                if not table or len(table) < 2:
+                    continue
+                header = [(c or "").strip() for c in table[0]]
+                if sum(1 for h in header if h) < 2:
+                    continue
+                for r in table[1:]:
+                    if all(c is None or str(c).strip() == "" for c in r):
+                        continue
+                    row_dict = {}
+                    for i, h in enumerate(header):
+                        if not h:
+                            continue
+                        v = r[i] if i < len(r) else ""
+                        row_dict[h] = "" if v is None else str(v)
+                    if any(v for v in row_dict.values()):
+                        out.append(row_dict)
+    return out
+
+
+def _rows_from_csv_text(text: str) -> List[dict]:
+    import csv
+    import io as _io
+    text = text.lstrip("\ufeff").strip()
+    if not text:
+        return []
+    reader = csv.DictReader(_io.StringIO(text))
+    return [dict(r) for r in reader]
+
+
+@api_router.post("/equipment/import-file", response_model=ImportResult)
+async def import_equipment_file(payload: ImportFile):
+    """Accepts a base64-encoded CSV, XLSX, or PDF file and imports equipment rows from it.
+
+    For XLSX: every sheet that has a recognisable header row is parsed.
+    For PDF: every detected table on every page is parsed.
+    """
+    import base64 as _b64
+
+    filename = payload.filename or "upload"
+    try:
+        data = _b64.b64decode(payload.file_b64)
+    except Exception as ex:
+        return ImportResult(filename=filename, created=0, skipped=0, errors=[f"invalid base64: {ex}"])
+
+    if not data:
+        return ImportResult(filename=filename, created=0, skipped=0, errors=["empty file"])
+
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    rows: List[dict] = []
+    parse_error: Optional[str] = None
+    try:
+        if ext == "xlsx" or ext == "xlsm":
+            rows = _rows_from_xlsx(data)
+        elif ext == "pdf":
+            rows = _rows_from_pdf(data)
+        else:
+            # default to CSV (covers .csv, .txt and unknowns)
+            rows = _rows_from_csv_text(data.decode("utf-8", errors="replace"))
+    except Exception as ex:
+        parse_error = f"could not parse {ext or 'file'}: {ex}"
+
+    if parse_error:
+        return ImportResult(filename=filename, created=0, skipped=0, errors=[parse_error])
+
+    created = 0
+    skipped = 0
+    errors: List[str] = []
+    docs_to_insert: List[dict] = []
+    for idx, row in enumerate(rows, start=2):
+        doc, err = _build_doc_from_row(row, payload.manufacturer_default)
+        if err:
+            skipped += 1
+            errors.append(f"row {idx}: {err}")
+            continue
+        docs_to_insert.append(doc)
+        created += 1
+
+    if docs_to_insert:
+        await db.equipment.insert_many(docs_to_insert)
+
+    return ImportResult(
+        filename=filename,
         created=created,
         skipped=skipped,
         errors=errors[:20],
@@ -444,6 +577,234 @@ async def project_estimate(project_id: str):
         total=round(total, 2),
         item_count=len(items),
     )
+
+
+def _escape_html(s: str) -> str:
+    return (
+        (s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\n", "<br/>")
+    )
+
+
+_ROLE_LABELS = {
+    "technician": "Technician",
+    "lead_technician": "Lead Technician",
+    "engineer": "Engineer / Programmer",
+    "project_manager": "Project Manager",
+    "closeout": "Closeout / O&M",
+}
+
+
+def _build_project_html(
+    project: Project,
+    est: EstimateSummary,
+    items: List[dict],
+    docs: Optional["ProjectDocuments"],
+) -> str:
+    today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+    c = project.counts
+
+    def _money(n: float) -> str:
+        return f"${n:,.2f}"
+
+    item_rows = "".join(
+        f"<tr>"
+        f"<td>{_escape_html(it['description'])}</td>"
+        f"<td class='num'>{it['quantity']}</td>"
+        f"<td class='num'>${float(it['unit_cost']):.2f}</td>"
+        f"<td class='num'>{it['labor_hours']}</td>"
+        f"<td>{_escape_html(_ROLE_LABELS.get(it.get('labor_role','technician'), it.get('labor_role','')))}</td>"
+        f"<td class='num'>${float(it['quantity']) * float(it['unit_cost']):.2f}</td>"
+        f"</tr>"
+        for it in items
+    )
+
+    def _doc_section(title: str, fields: List[tuple]) -> str:
+        rendered = "".join(
+            f"<div class='doc-field'><div class='doc-label'>{label}</div><p>{_escape_html(value)}</p></div>"
+            for label, value in fields if (value or "").strip()
+        )
+        if not rendered:
+            return ""
+        return f"<h2>{title}</h2>{rendered}"
+
+    scope = docs.scope if docs else None
+    proposal = docs.proposal if docs else None
+    boe = docs.boe if docs else None
+
+    scope_html = _doc_section("Scope of Work", [
+        ("Overview", scope.overview if scope else ""),
+        ("Inclusions", scope.inclusions if scope else ""),
+        ("Exclusions", scope.exclusions if scope else ""),
+        ("Testing", scope.testing if scope else ""),
+        ("Training", scope.training if scope else ""),
+        ("Warranty", scope.warranty if scope else ""),
+    ])
+    proposal_html = _doc_section("Proposal", [
+        ("Executive Summary", proposal.executive_summary if proposal else ""),
+        ("Technical Approach", proposal.technical_approach if proposal else ""),
+        ("Price Summary", proposal.price_summary if proposal else ""),
+        ("Assumptions", proposal.assumptions if proposal else ""),
+        ("Exclusions", proposal.exclusions if proposal else ""),
+        ("Acceptance", proposal.acceptance if proposal else ""),
+    ])
+    boe_html = _doc_section("Basis of Estimate", [
+        ("Basis of Labor", boe.basis_of_labor if boe else ""),
+        ("Basis of Material", boe.basis_of_material if boe else ""),
+        ("Risk Factors", boe.risk_factors if boe else ""),
+        ("Schedule Assumptions", boe.schedule_assumptions if boe else ""),
+        ("Clarifications", boe.clarifications if boe else ""),
+    ])
+
+    items_block = (
+        "<p style='color:#8E8E93;font-size:11px;'>No line items recorded.</p>"
+        if not items
+        else (
+            "<table class='items'>"
+            "<thead><tr><th>Description</th><th class='num'>Qty</th><th class='num'>Unit Cost</th>"
+            "<th class='num'>Hours</th><th>Role</th><th class='num'>Material</th></tr></thead>"
+            f"<tbody>{item_rows}</tbody></table>"
+        )
+    )
+
+    return f"""<!doctype html>
+<html><head><meta charset="utf-8" /><title>{_escape_html(project.name)} — Project Estimate</title>
+<style>
+@page {{ size: letter; margin: 0.6in 0.55in; }}
+body {{ font-family: Helvetica, Arial, sans-serif; color: #1c1c1e; font-size: 11px; }}
+header {{ border-bottom: 2px solid #5B7B6D; padding-bottom: 10px; margin-bottom: 16px; }}
+.brand {{ color: #5B7B6D; font-weight: bold; letter-spacing: 2px; font-size: 9px; }}
+h1 {{ font-size: 22px; margin: 4px 0; }}
+.meta {{ color: #6c6c70; font-size: 10px; }}
+h2 {{ color: #3A5A4C; font-size: 12px; margin-top: 18px; margin-bottom: 6px;
+      border-bottom: 1px solid #E5E5EA; padding-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }}
+.summary {{ background-color: #2C2C2E; color: #F9F9F7; padding: 14px 16px; }}
+.summary .lbl {{ color: #BBD1C7; font-size: 9px; letter-spacing: 1px; }}
+.summary .total {{ font-size: 26px; font-weight: bold; }}
+.summary table {{ width: 100%; margin-top: 8px; border-top: 1px solid #444; }}
+.summary td {{ padding: 2px 0; font-size: 10px; color: #F9F9F7; }}
+.summary td.num {{ text-align: right; font-weight: bold; }}
+.counts {{ width: 100%; }}
+.counts td {{ width: 20%; background-color: #F9F9F7;
+              border: 1px solid #E5E5EA; padding: 8px; }}
+.counts .lbl {{ font-size: 9px; color: #6c6c70; }}
+.counts .val {{ font-size: 14px; font-weight: bold; }}
+.items {{ width: 100%; border-collapse: collapse; }}
+.items th, .items td {{ border-bottom: 1px solid #E5E5EA; padding: 4px 6px; font-size: 10px; text-align: left; }}
+.items th {{ background-color: #F0F0EE; }}
+.items td.num, .items th.num {{ text-align: right; }}
+.doc-field {{ margin: 8px 0; }}
+.doc-label {{ font-size: 9px; color: #5B7B6D; font-weight: bold; text-transform: uppercase; letter-spacing: 0.4px; }}
+.doc-field p {{ font-size: 10.5px; margin: 3px 0 0; }}
+footer {{ margin-top: 20px; padding-top: 8px; border-top: 1px solid #E5E5EA;
+          color: #8E8E93; font-size: 9px; text-align: center; }}
+</style></head>
+<body>
+<header>
+  <div class="brand">SECURITY ESTIMATOR PRO</div>
+  <h1>{_escape_html(project.name)}</h1>
+  <div class="meta">
+    {_escape_html(project.customer or '—')} &middot; {_escape_html(project.site or '—')}
+    &middot; {_escape_html(project.project_type)} &middot; Generated {today}
+  </div>
+</header>
+
+<h2>Estimate Summary</h2>
+<div class="summary">
+  <div class="lbl">ESTIMATED SELL PRICE</div>
+  <div class="total">{_money(est.total)}</div>
+  <table>
+    <tr><td>Material</td><td class="num">{_money(est.material_cost)}</td></tr>
+    <tr><td>Labor</td><td class="num">{_money(est.labor_cost)}</td></tr>
+    <tr><td><b>Subtotal</b></td><td class="num"><b>{_money(est.subtotal)}</b></td></tr>
+    <tr><td>Overhead ({project.overhead_pct:.1f}%)</td><td class="num">{_money(est.overhead)}</td></tr>
+    <tr><td>Profit ({project.profit_pct:.1f}%)</td><td class="num">{_money(est.profit)}</td></tr>
+    <tr><td>Contingency ({project.contingency_pct:.1f}%)</td><td class="num">{_money(est.contingency)}</td></tr>
+  </table>
+</div>
+
+<h2>System Counts</h2>
+<table class="counts"><tr>
+  <td><div class="lbl">Cameras</div><div class="val">{c.cameras}</div></td>
+  <td><div class="lbl">ACS Doors</div><div class="val">{c.doors}</div></td>
+  <td><div class="lbl">IDS Points</div><div class="val">{c.ids_points}</div></td>
+  <td><div class="lbl">Intercoms</div><div class="val">{c.intercoms}</div></td>
+  <td><div class="lbl">Cable Runs</div><div class="val">{c.cable_runs}</div></td>
+</tr></table>
+
+<h2>Line Items ({len(items)})</h2>
+{items_block}
+
+{scope_html}
+{proposal_html}
+{boe_html}
+
+<footer>Confidential — for the addressee only.</footer>
+</body></html>"""
+
+
+@api_router.get("/projects/{project_id}/export.pdf")
+async def export_project_pdf(project_id: str):
+    """Server-rendered PDF for headless / scheduled exports."""
+    from xhtml2pdf import pisa
+    import io as _io
+    from fastapi.responses import StreamingResponse
+
+    proj_doc = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not proj_doc:
+        raise HTTPException(404, "Project not found")
+    project = Project(**proj_doc)
+
+    rates_doc = await db.settings.find_one({"key": "labor_rates"}, {"_id": 0})
+    rates = LaborRates(**(rates_doc.get("value", {}) if rates_doc else {}))
+    items = await db.estimate_items.find({"project_id": project_id}, {"_id": 0}).to_list(1000)
+
+    material = 0.0
+    labor = 0.0
+    for it in items:
+        material += float(it["quantity"]) * float(it["unit_cost"])
+        rate = getattr(rates, it.get("labor_role", "technician"), rates.technician)
+        labor += float(it["labor_hours"]) * float(rate)
+    subtotal = material + labor
+    overhead = subtotal * (project.overhead_pct / 100.0)
+    profit = subtotal * (project.profit_pct / 100.0)
+    contingency = subtotal * (project.contingency_pct / 100.0)
+    total = subtotal + overhead + profit + contingency
+    est = EstimateSummary(
+        material_cost=round(material, 2),
+        labor_cost=round(labor, 2),
+        subtotal=round(subtotal, 2),
+        overhead=round(overhead, 2),
+        profit=round(profit, 2),
+        contingency=round(contingency, 2),
+        total=round(total, 2),
+        item_count=len(items),
+    )
+
+    docs_raw = await db.project_documents.find_one({"project_id": project_id}, {"_id": 0})
+    docs = ProjectDocuments(**docs_raw) if docs_raw else None
+
+    html = _build_project_html(project, est, items, docs)
+
+    pdf_buffer = _io.BytesIO()
+    result = pisa.CreatePDF(src=html, dest=pdf_buffer, encoding="utf-8")
+    if result.err:
+        raise HTTPException(500, f"PDF render failed ({result.err} errors)")
+    pdf_buffer.seek(0)
+
+    safe_name = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in project.name).strip("_") or "project"
+    filename = f"{safe_name}-estimate.pdf"
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 
 
 # ===================== Routes: Documents (Phase 2) =====================

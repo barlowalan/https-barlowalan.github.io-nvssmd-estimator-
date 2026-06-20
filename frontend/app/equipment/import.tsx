@@ -16,6 +16,21 @@ import * as DocumentPicker from "expo-document-picker";
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api } from "@/src/api";
 
+function arrayBufferToBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(
+      null,
+      Array.from(bytes.subarray(i, i + chunk))
+    );
+  }
+  // btoa works in both web and Hermes (RN)
+  // eslint-disable-next-line no-undef
+  return typeof btoa !== "undefined" ? btoa(binary) : Buffer.from(binary, "binary").toString("base64");
+}
+
 type Result = {
   filename: string;
   created: number;
@@ -33,32 +48,63 @@ export default function ImportEquipment() {
     setBusy(true);
     try {
       const res = await DocumentPicker.getDocumentAsync({
-        type: ["text/csv", "text/comma-separated-values", "application/csv", "*/*"],
+        type: [
+          "text/csv",
+          "text/comma-separated-values",
+          "application/csv",
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/pdf",
+          "*/*",
+        ],
         multiple: true,
         copyToCacheDirectory: true,
       });
       if (res.canceled) return;
       const assets = res.assets || [];
       for (const a of assets) {
-        const name = a.name || "upload.csv";
+        const name = a.name || "upload";
         setBusyFile(name);
         try {
-          let text = "";
-          if (Platform.OS === "web" && (a as any).file) {
-            text = await (a as any).file.text();
-          } else if (a.uri) {
-            const r = await fetch(a.uri);
-            text = await r.text();
+          const ext = (name.split(".").pop() || "").toLowerCase();
+          const isCsv = ext === "csv" || ext === "txt" || (a.mimeType || "").includes("csv");
+
+          let result;
+          if (isCsv) {
+            let text = "";
+            if (Platform.OS === "web" && (a as any).file) {
+              text = await (a as any).file.text();
+            } else if (a.uri) {
+              const r = await fetch(a.uri);
+              text = await r.text();
+            }
+            if (!text) {
+              setResults((prev) => [
+                ...prev,
+                { filename: name, created: 0, skipped: 0, errors: ["Could not read file"] },
+              ]);
+              continue;
+            }
+            result = await api.importEquipment(text, name);
+          } else {
+            let bytes: ArrayBuffer | null = null;
+            if (Platform.OS === "web" && (a as any).file) {
+              bytes = await (a as any).file.arrayBuffer();
+            } else if (a.uri) {
+              const r = await fetch(a.uri);
+              bytes = await r.arrayBuffer();
+            }
+            if (!bytes) {
+              setResults((prev) => [
+                ...prev,
+                { filename: name, created: 0, skipped: 0, errors: ["Could not read file"] },
+              ]);
+              continue;
+            }
+            const b64 = arrayBufferToBase64(bytes);
+            result = await api.importEquipmentFile(b64, name);
           }
-          if (!text) {
-            setResults((prev) => [
-              ...prev,
-              { filename: name, created: 0, skipped: 0, errors: ["Could not read file"] },
-            ]);
-            continue;
-          }
-          const out = await api.importEquipment(text, name);
-          setResults((prev) => [...prev, out]);
+          setResults((prev) => [...prev, result]);
         } catch (e: any) {
           setResults((prev) => [
             ...prev,
@@ -92,7 +138,7 @@ export default function ImportEquipment() {
           </View>
           <Text style={styles.heroTitle}>Bring your price book</Text>
           <Text style={styles.heroBody}>
-            Pick one or many CSV files. We auto-map columns like Manufacturer, Part Number, System, MSRP, Dealer Cost, and Sell Price.
+            Pick one or many files (CSV, XLSX, PDF). We auto-map columns like Manufacturer, Part Number, System, MSRP, Dealer Cost, and Sell Price. Multi-sheet workbooks are fully scanned.
           </Text>
         </View>
 
@@ -170,7 +216,7 @@ export default function ImportEquipment() {
               <>
                 <Ionicons name="document-attach-outline" size={18} color={colors.onBrandPrimary} />
                 <Text style={styles.ctaText}>
-                  {results.length > 0 ? "Pick more files" : "Pick CSV files"}
+                  {results.length > 0 ? "Pick more files" : "Pick CSV, XLSX or PDF"}
                 </Text>
               </>
             )}
