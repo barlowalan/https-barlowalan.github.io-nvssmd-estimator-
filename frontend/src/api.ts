@@ -175,6 +175,12 @@ export const api = {
       headers: J,
       body: JSON.stringify(item),
     }).then((r) => h<EstimateItem>(r)),
+  addItemsBulk: (projectId: string, items: Omit<EstimateItem, "id" | "project_id">[]) =>
+    fetch(`${BASE}/api/projects/${projectId}/items/bulk`, {
+      method: "POST",
+      headers: J,
+      body: JSON.stringify(items),
+    }).then((r) => h<EstimateItem[]>(r)),
   deleteItem: (projectId: string, itemId: string) =>
     fetch(`${BASE}/api/projects/${projectId}/items/${itemId}`, { method: "DELETE" }).then((r) => h(r)),
   estimate: (projectId: string) =>

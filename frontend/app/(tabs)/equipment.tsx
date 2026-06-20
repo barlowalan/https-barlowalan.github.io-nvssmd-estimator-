@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ export default function EquipmentScreen() {
   const [items, setItems] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<string>("all");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -44,25 +46,74 @@ export default function EquipmentScreen() {
     load();
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const onSaveToProject = () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds).join(",");
+    router.push({ pathname: "/equipment/save-to-project", params: { ids } });
+    // Clear after a small delay so coming back doesn't immediately resurface
+    setTimeout(exitSelectMode, 400);
+  };
+
+  const summary = useMemo(() => {
+    let total = 0;
+    items.forEach((eq) => {
+      if (selectedIds.has(eq.id)) total += eq.cost;
+    });
+    return { total, count: selectedIds.size };
+  }, [selectedIds, items]);
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.title}>Equipment Library</Text>
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <Pressable
-            testID="import-equipment-button"
-            onPress={() => router.push("/equipment/import")}
-            style={[styles.addBtn, { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border }]}
-          >
-            <Ionicons name="cloud-upload-outline" size={18} color={colors.brandPrimary} />
-          </Pressable>
-          <Pressable
-            testID="add-equipment-button"
-            onPress={() => router.push("/equipment/new")}
-            style={styles.addBtn}
-          >
-            <Ionicons name="add" size={20} color={colors.onBrandPrimary} />
-          </Pressable>
+          {selectMode ? (
+            <Pressable
+              testID="cancel-select"
+              onPress={exitSelectMode}
+              style={[styles.iconBtn, styles.iconBtnGhost]}
+            >
+              <Text style={styles.iconBtnGhostText}>Cancel</Text>
+            </Pressable>
+          ) : (
+            <>
+              <Pressable
+                testID="enter-select-mode"
+                onPress={() => setSelectMode(true)}
+                style={[styles.iconBtn, styles.iconBtnGhost]}
+              >
+                <Ionicons name="checkmark-done-outline" size={18} color={colors.brandPrimary} />
+              </Pressable>
+              <Pressable
+                testID="import-equipment-button"
+                onPress={() => router.push("/equipment/import")}
+                style={[styles.iconBtn, styles.iconBtnGhost]}
+              >
+                <Ionicons name="cloud-upload-outline" size={18} color={colors.brandPrimary} />
+              </Pressable>
+              <Pressable
+                testID="add-equipment-button"
+                onPress={() => router.push("/equipment/new")}
+                style={[styles.iconBtn, styles.iconBtnPrimary]}
+              >
+                <Ionicons name="add" size={20} color={colors.onBrandPrimary} />
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
 
@@ -93,7 +144,10 @@ export default function EquipmentScreen() {
         <FlatList
           data={items}
           keyExtractor={(e) => e.id}
-          contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            paddingBottom: selectMode && selectedIds.size > 0 ? 200 : 120,
+          }}
           ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
           ListEmptyComponent={
             <View style={styles.empty} testID="equipment-empty">
@@ -104,40 +158,76 @@ export default function EquipmentScreen() {
               <Text style={styles.emptySub}>Build your library of cameras, controllers, locks and cabling.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.row} testID={`equipment-row-${item.id}`}>
-              <View style={styles.rowIcon}>
-                <Ionicons name="hardware-chip-outline" size={20} color={colors.brandPrimary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
-                  {item.manufacturer} {item.model}
-                </Text>
-                <Text style={styles.rowSub}>
-                  {item.category} · ${item.cost.toFixed(2)} cost
-                  {item.sell_price ? ` · $${item.sell_price.toFixed(2)} sell` : ""} · {item.lead_time_days}d lead
-                </Text>
-                <View style={styles.tagsRow}>
-                  {item.ndaa && (
-                    <View style={[styles.tag, { backgroundColor: colors.brandSecondary }]}>
-                      <Text style={[styles.tagText, { color: colors.onBrandSecondary }]}>NDAA</Text>
+          renderItem={({ item }) => {
+            const isSelected = selectedIds.has(item.id);
+            return (
+              <Pressable
+                testID={`equipment-row-${item.id}`}
+                onPress={() => selectMode && toggleSelect(item.id)}
+                style={[styles.row, selectMode && isSelected && styles.rowSelected]}
+              >
+                {selectMode ? (
+                  <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+                    {isSelected ? (
+                      <Ionicons name="checkmark" size={14} color={colors.onBrandPrimary} />
+                    ) : null}
+                  </View>
+                ) : (
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="hardware-chip-outline" size={20} color={colors.brandPrimary} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {item.manufacturer} {item.model}
+                  </Text>
+                  <Text style={styles.rowSub}>
+                    {item.category} · ${item.cost.toFixed(2)} cost
+                    {item.sell_price ? ` · $${item.sell_price.toFixed(2)} sell` : ""} · {item.lead_time_days}d lead
+                  </Text>
+                  <View style={styles.tagsRow}>
+                    {item.ndaa && (
+                      <View style={[styles.tag, { backgroundColor: colors.brandSecondary }]}>
+                        <Text style={[styles.tagText, { color: colors.onBrandSecondary }]}>NDAA</Text>
+                      </View>
+                    )}
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{item.warranty_years}yr warranty</Text>
                     </View>
-                  )}
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>{item.warranty_years}yr warranty</Text>
                   </View>
                 </View>
-              </View>
-              <Pressable
-                onPress={() => onDelete(item.id)}
-                hitSlop={8}
-                testID={`delete-equipment-${item.id}`}
-              >
-                <Ionicons name="trash-outline" size={18} color={colors.error} />
+                {!selectMode && (
+                  <Pressable
+                    onPress={() => onDelete(item.id)}
+                    hitSlop={8}
+                    testID={`delete-equipment-${item.id}`}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={colors.error} />
+                  </Pressable>
+                )}
               </Pressable>
-            </View>
-          )}
+            );
+          }}
         />
+      )}
+
+      {selectMode && selectedIds.size > 0 && (
+        <View style={styles.footer} testID="select-footer">
+          <View style={{ flex: 1 }}>
+            <Text style={styles.footerSub}>
+              {summary.count} {summary.count === 1 ? "item" : "items"} selected
+            </Text>
+            <Text style={styles.footerTotal}>{currency(summary.total)}</Text>
+          </View>
+          <Pressable
+            testID="save-to-project-btn"
+            onPress={onSaveToProject}
+            style={({ pressed }) => [styles.cta, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.ctaText}>Save to project</Text>
+            <Ionicons name="arrow-forward" size={18} color={colors.onBrandPrimary} />
+          </Pressable>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -176,14 +266,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: { fontSize: 24, fontWeight: "700", color: colors.onSurface },
-  addBtn: {
-    width: 44,
+  iconBtn: {
     height: 44,
+    minWidth: 44,
+    paddingHorizontal: spacing.sm,
     borderRadius: 22,
-    backgroundColor: colors.brandPrimary,
     justifyContent: "center",
     alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
   },
+  iconBtnGhost: { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border },
+  iconBtnGhostText: { color: colors.brandPrimary, fontWeight: "700", fontSize: fontSize.sm, paddingHorizontal: 4 },
+  iconBtnPrimary: { backgroundColor: colors.brandPrimary, width: 44 },
   chipsWrap: { height: 56, justifyContent: "center" },
   chip: {
     height: 36,
@@ -218,11 +313,21 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     gap: spacing.md,
   },
+  rowSelected: { borderColor: colors.brandPrimary, backgroundColor: colors.brandTertiary },
   rowIcon: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: colors.brandTertiary,
     justifyContent: "center", alignItems: "center",
   },
+  checkbox: {
+    width: 24, height: 24, borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxActive: { borderColor: colors.brandPrimary, backgroundColor: colors.brandPrimary },
   rowTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.onSurface },
   rowSub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 2 },
   tagsRow: { flexDirection: "row", gap: 6, marginTop: 6 },
@@ -232,4 +337,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceTertiary,
   },
   tagText: { fontSize: 11, fontWeight: "600", color: colors.onSurfaceTertiary },
+  footer: {
+    position: "absolute",
+    left: 0, right: 0, bottom: 84,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    padding: spacing.lg,
+  },
+  footerSub: { fontSize: fontSize.sm, color: colors.muted },
+  footerTotal: { fontSize: fontSize.xl, fontWeight: "700", color: colors.brandPrimary, marginTop: 2 },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.brandPrimary,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+  },
+  ctaText: { color: colors.onBrandPrimary, fontWeight: "700", fontSize: fontSize.lg },
 });

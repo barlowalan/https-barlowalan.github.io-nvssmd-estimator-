@@ -204,14 +204,24 @@ export default function ProjectDetail() {
 
         <View style={styles.sectionRow}>
           <Text style={styles.section}>Line Items ({items.length})</Text>
-          <Pressable
-            testID="add-item-btn"
-            onPress={() => router.push({ pathname: "/project/[id]/add-item", params: { id: project.id } })}
-            style={styles.addItemBtn}
-          >
-            <Ionicons name="add" size={16} color={colors.brandPrimary} />
-            <Text style={styles.addItemText}>Add</Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Pressable
+              testID="pick-products-btn"
+              onPress={() => router.push({ pathname: "/project/[id]/pick-products", params: { id: project.id } })}
+              style={styles.addItemBtn}
+            >
+              <Ionicons name="cube-outline" size={16} color={colors.brandPrimary} />
+              <Text style={styles.addItemText}>Pick</Text>
+            </Pressable>
+            <Pressable
+              testID="add-item-btn"
+              onPress={() => router.push({ pathname: "/project/[id]/add-item", params: { id: project.id } })}
+              style={styles.addItemBtn}
+            >
+              <Ionicons name="add" size={16} color={colors.brandPrimary} />
+              <Text style={styles.addItemText}>Custom</Text>
+            </Pressable>
+          </View>
         </View>
 
         {items.length === 0 ? (

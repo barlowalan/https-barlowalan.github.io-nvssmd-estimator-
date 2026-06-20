@@ -538,6 +538,23 @@ async def add_item(project_id: str, payload: EstimateItemCreate):
     return item
 
 
+@api_router.post("/projects/{project_id}/items/bulk", response_model=List[EstimateItem])
+async def add_items_bulk(project_id: str, payload: List[EstimateItemCreate]):
+    proj = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    if not payload:
+        return []
+    items: List[EstimateItem] = []
+    docs: List[dict] = []
+    for p in payload:
+        item = EstimateItem(id=str(uuid.uuid4()), project_id=project_id, **p.dict())
+        items.append(item)
+        docs.append(item.dict())
+    await db.estimate_items.insert_many(docs)
+    return items
+
+
 @api_router.delete("/projects/{project_id}/items/{item_id}")
 async def delete_item(project_id: str, item_id: str):
     res = await db.estimate_items.delete_one({"id": item_id, "project_id": project_id})
