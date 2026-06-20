@@ -7,6 +7,7 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -61,9 +62,16 @@ export default function ProjectsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>SECURITY ESTIMATOR PRO</Text>
-          <Text style={styles.title}>Projects</Text>
+        <View style={styles.brandRow}>
+          <Image
+            source={require("@/assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.brand}>SECURITY ESTIMATOR PRO</Text>
+            <Text style={styles.title}>Projects</Text>
+          </View>
         </View>
         <View style={styles.headerStats} testID="projects-pipeline-value">
           <Text style={styles.statLabel}>Pipeline</Text>
@@ -169,6 +177,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 2,
   },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  logo: { width: 44, height: 44 },
   title: { fontSize: 28, fontWeight: "700", color: colors.onSurface, marginTop: 2 },
   headerStats: { alignItems: "flex-end" },
   statLabel: { fontSize: fontSize.sm, color: colors.muted },
