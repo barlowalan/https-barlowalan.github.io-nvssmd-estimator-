@@ -29,6 +29,7 @@ export default function SaveToProjectScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSavingId] = useState<string | null>(null);
   const [useSellPrice, setUseSellPrice] = useState(false);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [done, setDone] = useState<{ project: string; count: number } | null>(null);
 
   useFocusEffect(
@@ -38,10 +39,18 @@ export default function SaveToProjectScreen() {
         .then(([ps, eqs]) => {
           setProjects(ps);
           setEquipment(eqs);
+          // Seed qty=1 for each selected id (preserve any user edits)
+          setQuantities((prev) => {
+            const next = { ...prev };
+            selectedIds.forEach((id) => {
+              if (next[id] == null) next[id] = 1;
+            });
+            return next;
+          });
         })
         .catch(() => {})
         .finally(() => setLoading(false));
-    }, [])
+    }, [selectedIds])
   );
 
   const selectedEquipment = useMemo(
@@ -49,14 +58,28 @@ export default function SaveToProjectScreen() {
     [equipment, selectedIds]
   );
 
+  const qtyOf = (id: string) => quantities[id] ?? 1;
+
+  const priceOf = (eq: Equipment) =>
+    useSellPrice && eq.sell_price ? eq.sell_price : eq.cost;
+
   const totalCost = useMemo(
-    () =>
-      selectedEquipment.reduce(
-        (s, eq) => s + (useSellPrice && eq.sell_price ? eq.sell_price : eq.cost),
-        0
-      ),
-    [selectedEquipment, useSellPrice]
+    () => selectedEquipment.reduce((s, eq) => s + priceOf(eq) * qtyOf(eq.id), 0),
+    [selectedEquipment, useSellPrice, quantities]
   );
+
+  const totalUnits = useMemo(
+    () => selectedEquipment.reduce((s, eq) => s + qtyOf(eq.id), 0),
+    [selectedEquipment, quantities]
+  );
+
+  const bumpQty = (id: string, delta: number) => {
+    setQuantities((prev) => {
+      const cur = prev[id] ?? 1;
+      const nextVal = Math.max(1, Math.min(999, cur + delta));
+      return { ...prev, [id]: nextVal };
+    });
+  };
 
   const onSave = async (project: Project) => {
     if (selectedEquipment.length === 0) return;
@@ -65,8 +88,8 @@ export default function SaveToProjectScreen() {
       const items = selectedEquipment.map((eq) => ({
         description: `${eq.manufacturer} ${eq.model}`,
         equipment_id: eq.id,
-        quantity: 1,
-        unit_cost: useSellPrice && eq.sell_price ? eq.sell_price : eq.cost,
+        quantity: qtyOf(eq.id),
+        unit_cost: priceOf(eq),
         labor_hours: 0,
         labor_role: "technician" as const,
       }));
@@ -129,7 +152,7 @@ export default function SaveToProjectScreen() {
           <Text style={styles.summaryValue}>
             {selectedEquipment.length} {selectedEquipment.length === 1 ? "product" : "products"}
           </Text>
-          <Text style={styles.summarySub}>{currency(totalCost)} total · 1× each</Text>
+          <Text style={styles.summarySub}>{currency(totalCost)} total · {totalUnits} units</Text>
         </View>
         <View style={styles.sellRow}>
           <Text style={styles.sellLabel}>Sell price</Text>
@@ -169,7 +192,50 @@ export default function SaveToProjectScreen() {
             </View>
           }
           ListHeaderComponent={
-            projects.length > 0 ? <Text style={styles.section}>Choose project</Text> : null
+            <>
+              {selectedEquipment.length > 0 && (
+                <View style={{ marginBottom: spacing.lg }} testID="qty-section">
+                  <Text style={styles.section}>Quantities</Text>
+                  {selectedEquipment.map((eq) => {
+                    const qty = qtyOf(eq.id);
+                    const unitPrice = priceOf(eq);
+                    return (
+                      <View key={eq.id} style={styles.qtyRow} testID={`qty-row-${eq.id}`}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.qtyTitle} numberOfLines={1}>
+                            {eq.manufacturer} {eq.model}
+                          </Text>
+                          <Text style={styles.qtySub}>
+                            {currency(unitPrice)} × {qty} = {currency(unitPrice * qty)}
+                          </Text>
+                        </View>
+                        <View style={styles.stepper}>
+                          <Pressable
+                            testID={`qty-down-${eq.id}`}
+                            onPress={() => bumpQty(eq.id, -1)}
+                            disabled={qty <= 1}
+                            hitSlop={6}
+                            style={[styles.stepBtn, qty <= 1 && { opacity: 0.35 }]}
+                          >
+                            <Ionicons name="remove" size={16} color={colors.brandPrimary} />
+                          </Pressable>
+                          <Text style={styles.qtyText} testID={`qty-val-${eq.id}`}>{qty}</Text>
+                          <Pressable
+                            testID={`qty-up-${eq.id}`}
+                            onPress={() => bumpQty(eq.id, 1)}
+                            hitSlop={6}
+                            style={styles.stepBtn}
+                          >
+                            <Ionicons name="add" size={16} color={colors.brandPrimary} />
+                          </Pressable>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+              {projects.length > 0 ? <Text style={styles.section}>Choose project</Text> : null}
+            </>
           }
           renderItem={({ item }) => {
             const c = item.counts;
@@ -288,4 +354,39 @@ const styles = StyleSheet.create({
   successBtnGhostText: { color: colors.onSurface, fontWeight: "700", fontSize: fontSize.base },
   successBtnPrimary: { backgroundColor: colors.brandPrimary },
   successBtnPrimaryText: { color: colors.onBrandPrimary, fontWeight: "700", fontSize: fontSize.base },
+  qtyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
+  },
+  qtyTitle: { fontSize: fontSize.base, fontWeight: "600", color: colors.onSurface },
+  qtySub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 2 },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.brandPrimary,
+  },
+  stepBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    justifyContent: "center", alignItems: "center",
+  },
+  qtyText: {
+    minWidth: 24,
+    textAlign: "center",
+    fontWeight: "700",
+    color: colors.onSurface,
+    fontSize: fontSize.base,
+  },
 });
