@@ -48,13 +48,22 @@ export default function EquipmentScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.title}>Equipment Library</Text>
-        <Pressable
-          testID="add-equipment-button"
-          onPress={() => router.push("/equipment/new")}
-          style={styles.addBtn}
-        >
-          <Ionicons name="add" size={20} color={colors.onBrandPrimary} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Pressable
+            testID="import-equipment-button"
+            onPress={() => router.push("/equipment/import")}
+            style={[styles.addBtn, { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border }]}
+          >
+            <Ionicons name="cloud-upload-outline" size={18} color={colors.brandPrimary} />
+          </Pressable>
+          <Pressable
+            testID="add-equipment-button"
+            onPress={() => router.push("/equipment/new")}
+            style={styles.addBtn}
+          >
+            <Ionicons name="add" size={20} color={colors.onBrandPrimary} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.chipsWrap}>

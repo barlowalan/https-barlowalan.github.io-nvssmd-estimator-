@@ -57,10 +57,26 @@ class EquipmentCreate(BaseModel):
     ndaa: bool = False
     lead_time_days: int = 0
     warranty_years: int = 1
+    part_number: str = ""
+    msrp: float = 0.0
+    sell_price: float = 0.0
 
 
 class Equipment(EquipmentCreate):
     id: str
+
+
+class ImportRow(BaseModel):
+    csv_text: str
+    filename: Optional[str] = None
+    manufacturer_default: Optional[str] = None
+
+
+class ImportResult(BaseModel):
+    filename: str
+    created: int
+    skipped: int
+    errors: List[str]
 
 
 class LaborRates(BaseModel):
@@ -209,6 +225,148 @@ async def delete_equipment(eq_id: str):
     if res.deleted_count == 0:
         raise HTTPException(404, "Equipment not found")
     return {"success": True}
+
+
+# ---- CSV Import ----
+_SYSTEM_TO_CATEGORY = {
+    "cctv": "CCTV",
+    "video": "CCTV",
+    "camera": "CCTV",
+    "surveillance": "CCTV",
+    "access control": "Access Control",
+    "acs": "Access Control",
+    "access": "Access Control",
+    "ids": "IDS",
+    "intrusion": "IDS",
+    "alarm": "IDS",
+    "intercom": "Intercom",
+    "cabling": "Cabling",
+    "cable": "Cabling",
+    "wire": "Cabling",
+    "network": "Network/Headend",
+    "headend": "Network/Headend",
+    "head end": "Network/Headend",
+    "head-end": "Network/Headend",
+    "switch": "Network/Headend",
+    "server": "Network/Headend",
+}
+
+
+def _map_category(value: str) -> str:
+    if not value:
+        return "Network/Headend"
+    v = value.strip().lower()
+    if v in _SYSTEM_TO_CATEGORY:
+        return _SYSTEM_TO_CATEGORY[v]
+    for k, mapped in _SYSTEM_TO_CATEGORY.items():
+        if k in v:
+            return mapped
+    return value.strip()
+
+
+def _norm_header(s: str) -> str:
+    return "".join(ch.lower() for ch in (s or "") if ch.isalnum())
+
+
+def _pick(row: dict, candidates: List[str]) -> str:
+    norm_map = {_norm_header(k): k for k in row.keys()}
+    for c in candidates:
+        nk = _norm_header(c)
+        if nk in norm_map:
+            v = row.get(norm_map[nk])
+            if v is not None and str(v).strip() != "":
+                return str(v).strip()
+    return ""
+
+
+def _parse_float(s: str) -> float:
+    if not s:
+        return 0.0
+    cleaned = s.replace("$", "").replace(",", "").replace("%", "").strip()
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+@api_router.post("/equipment/import", response_model=ImportResult)
+async def import_equipment(payload: ImportRow):
+    import csv
+    import io
+
+    text = payload.csv_text.lstrip("\ufeff").strip()
+    if not text:
+        return ImportResult(filename=payload.filename or "upload.csv", created=0, skipped=0, errors=["empty file"])
+
+    reader = csv.DictReader(io.StringIO(text))
+    created = 0
+    skipped = 0
+    errors: List[str] = []
+    docs_to_insert = []
+
+    for idx, row in enumerate(reader, start=2):  # header is row 1
+        try:
+            manufacturer = _pick(row, ["Manufacturer", "Brand", "Vendor"]) or (payload.manufacturer_default or "")
+            part_number = _pick(row, ["Part Number", "PartNumber", "PN", "SKU", "Model Number", "ModelNumber"])
+            description = _pick(row, ["Description", "Model", "Name", "Product"])
+            system = _pick(row, ["System", "Category", "Type"])
+
+            # Build model display: PN + description
+            if part_number and description:
+                model = f"{part_number} — {description}"
+            else:
+                model = description or part_number
+
+            if not manufacturer or not model:
+                skipped += 1
+                errors.append(f"row {idx}: missing manufacturer or model")
+                continue
+
+            category = _map_category(system)
+            msrp = _parse_float(_pick(row, ["MSRP / List Price", "MSRP", "List Price", "Price"]))
+            cost = _parse_float(_pick(row, ["Dealer Cost", "Cost", "Net Cost", "Unit Cost"]))
+            sell = _parse_float(_pick(row, ["Proposal Sell Price", "Sell Price", "Sell", "Customer Price"]))
+
+            # Fallback: if no Dealer Cost but we have MSRP and discount %, derive it
+            if cost == 0 and msrp > 0:
+                disc = _parse_float(_pick(row, ["Dealer Discount %", "Discount %", "Discount"]))
+                if disc > 0:
+                    cost = round(msrp * (1 - disc / 100.0), 2)
+
+            ndaa_raw = _pick(row, ["NDAA", "NDAA Compliant", "Compliant"]).lower()
+            ndaa = ndaa_raw in ("y", "yes", "true", "1", "compliant")
+
+            lead = int(_parse_float(_pick(row, ["Lead Time", "Lead Days", "Lead Time Days"]) or "0"))
+            warranty = int(_parse_float(_pick(row, ["Warranty", "Warranty Years", "Warranty (yrs)"]) or "1") or 1)
+
+            docs_to_insert.append({
+                "id": str(uuid.uuid4()),
+                "manufacturer": manufacturer,
+                "model": model,
+                "category": category,
+                "cost": cost,
+                "ndaa": ndaa,
+                "lead_time_days": lead,
+                "warranty_years": warranty,
+                "part_number": part_number,
+                "msrp": msrp,
+                "sell_price": sell,
+            })
+            created += 1
+        except Exception as ex:  # pragma: no cover
+            skipped += 1
+            errors.append(f"row {idx}: {ex}")
+
+    if docs_to_insert:
+        await db.equipment.insert_many(docs_to_insert)
+
+    # Cap error list so response stays small
+    return ImportResult(
+        filename=payload.filename or "upload.csv",
+        created=created,
+        skipped=skipped,
+        errors=errors[:20],
+    )
 
 
 # ===================== Routes: Labor Rates =====================

@@ -34,6 +34,9 @@ export type Equipment = {
   ndaa: boolean;
   lead_time_days: number;
   warranty_years: number;
+  part_number?: string;
+  msrp?: number;
+  sell_price?: number;
 };
 
 export type LaborRates = {
@@ -139,6 +142,14 @@ export const api = {
     ),
   deleteEquipment: (id: string) =>
     fetch(`${BASE}/api/equipment/${id}`, { method: "DELETE" }).then((r) => h(r)),
+  importEquipment: (csv_text: string, filename: string) =>
+    fetch(`${BASE}/api/equipment/import`, {
+      method: "POST",
+      headers: J,
+      body: JSON.stringify({ csv_text, filename }),
+    }).then((r) =>
+      h<{ filename: string; created: number; skipped: number; errors: string[] }>(r)
+    ),
 
   // Labor
   getRates: () => fetch(`${BASE}/api/labor-rates`).then((r) => h<LaborRates>(r)),
