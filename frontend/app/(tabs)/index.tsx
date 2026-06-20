@@ -62,7 +62,7 @@ export default function ProjectsScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.brand}>NVSSMD</Text>
+          <Text style={styles.brand}>SECURITY ESTIMATOR PRO</Text>
           <Text style={styles.title}>Projects</Text>
         </View>
         <View style={styles.headerStats} testID="projects-pipeline-value">

@@ -104,7 +104,7 @@ def strip_id(doc: dict) -> dict:
 # ===================== Routes: Projects =====================
 @api_router.get("/")
 async def root():
-    return {"message": "NVSSMD Estimator API"}
+    return {"message": "Security Estimator Pro API"}
 
 
 @api_router.get("/projects", response_model=List[Project])
