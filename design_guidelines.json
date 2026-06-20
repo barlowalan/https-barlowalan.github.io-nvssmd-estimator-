@@ -1,0 +1,161 @@
+{
+  "app_name": "CloudStore",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A calm, highly readable, and trustworthy file manager that lets the content breathe through generous spacing and subtle earthy sage accents.",
+  "color": {
+    "surface": "#F9F9F7",
+    "onSurface": "#1C1C1E",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#1C1C1E",
+    "surfaceTertiary": "#F0F0EE",
+    "onSurfaceTertiary": "#3A3A3C",
+    "surfaceInverse": "#2C2C2E",
+    "onSurfaceInverse": "#F9F9F7",
+    "brand": "#6A8A7C",
+    "brandPrimary": "#5B7B6D",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#E1E8E4",
+    "onBrandSecondary": "#3A5A4C",
+    "brandTertiary": "#EDF1EF",
+    "onBrandTertiary": "#4B6B5D",
+    "success": "#34C759",
+    "onSuccess": "#FFFFFF",
+    "warning": "#FF9F0A",
+    "onWarning": "#FFFFFF",
+    "error": "#FF453A",
+    "onError": "#FFFFFF",
+    "info": "#6A8A7C",
+    "onInfo": "#FFFFFF",
+    "border": "#E5E5EA",
+    "borderStrong": "#C7C7CC",
+    "divider": "#E5E5EA"
+  },
+  "typography": {
+    "displayFontFamily": "Geist",
+    "textFontFamily": "Geist",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous iOS native padding, use xl (24) around screen edges and md (12) or lg (16) between stacked components.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Bottom tab bar (frosted)",
+      "Sticky FAB for upload",
+      "Bottom-sheet headers",
+      "Featured storage card header"
+    ],
+    "dont's": [
+      "List items",
+      "Form inputs",
+      "Chips"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "Dashboard showing storage usage overview and quick access to recent files and categories.",
+      "states": {
+        "loading": "Centered spinner.",
+        "empty": "No recent files state with an illustration and a prompt to upload your first file.",
+        "error": "Failed to load storage data message with a primary Retry button."
+      },
+      "layout": "1. Storage Usage Card at top (glass overlaid on paper texture background) showing GB used/total. 2. 2-column grid of Categories (Documents, Images, Videos, Other) using brandTertiary tinted icons. 3. 'Recent Files' vertical list with leading file-type icons. A Sticky FAB in bottom right corner for 'Upload'."
+    },
+    {
+      "name": "Files (Browse)",
+      "purpose": "A dedicated tab to navigate the full file tree and search/filter.",
+      "states": {
+        "loading": "Skeleton list structure.",
+        "empty": "Empty state photo (white box) with text 'Your drive is empty' and a primary Upload CTA.",
+        "error": "Error message 'Unable to fetch files' with retry."
+      },
+      "layout": "Sticky Header with Search input (surfaceTertiary) and Filter chips below it. Vertical list of files/folders. Each list item has a leading icon (in brandTertiary bg circle), title, subtitle (date/size), and trailing 3-dot menu. Use dividers between rows."
+    },
+    {
+      "name": "Upload Modal (Bottom Sheet)",
+      "purpose": "Action sheet triggered by the FAB to select file type (Image, Video, Document).",
+      "states": {
+        "loading": "Uploading progress bar state inside the sheet.",
+        "empty": "N/A",
+        "error": "Upload failed toast notification."
+      },
+      "layout": "Half-screen bottom sheet with frosted glass header and drag handle. List of upload options (Camera, Photo Library, Files) using large row height (56pt) and brandTertiary icons."
+    },
+    {
+      "name": "File Details",
+      "purpose": "Preview the selected file and provide management actions.",
+      "states": {
+        "loading": "Spinner in the preview area.",
+        "empty": "N/A",
+        "error": "Preview not available placeholder with a broken link icon."
+      },
+      "layout": "Top half is the file preview (image/video viewer). If no preview, large file type icon on surfaceSecondary background. Below preview: Large file name, detailed metadata (size, created date, type). Bottom sticky container with primary actions (Share, Rename, Delete). Delete should be semantic (error color)."
+    }
+  ],
+  "images": {
+    "storage_card_bg": {
+      "url": "https://images.unsplash.com/photo-1603484477859-abe6a73f9366?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMHBhcGVyJTIwdGV4dHVyZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzgxOTcxODg3fDA&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.pexels.com/photos/8749388/pexels-photo-8749388.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "Abstract subtle paper texture for storage card background"
+    },
+    "empty_folder": {
+      "url": "https://images.unsplash.com/photo-1573376670774-4427757f7963?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHxlbXB0eSUyMGNhcmRib2FyZCUyMGJveCUyMGlsbHVzdHJhdGlvbnxlbnwwfHx8fDE3ODE5NzE4ODZ8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Clean white open box indicating empty state"
+    }
+  },
+  "haptics": {
+    "upload_fab_press": "impactLight",
+    "file_list_item_press": "selection",
+    "bottom_sheet_open": "impactLight",
+    "tab_change": "selection",
+    "delete_action": "notificationWarning"
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the 1 iOS-Native Clean personality. Keep backgrounds light and padding generous (xl).",
+    "Do NOT use any blue/indigo/purple colors. Rely entirely on the provided Sage Green and earthy tones.",
+    "Implement a sticky Floating Action Button (FAB) for the Upload action on the Home and Files tabs, with a glass effect and brandPrimary tint.",
+    "For the top Storage Usage card on the Home screen, use the 'storage_card_bg' image with a vertical gradient scrim (transparent to surfaceSecondary) to ensure text readability.",
+    "For File items in the list, use a rounded icon container with 'brandTertiary' background and 'brandPrimary' icon instead of bare icons.",
+    "Ensure all primary CTAs are sticky at the bottom using KeyboardAvoidingView and safe area padding.",
+    "Use Phosphor icons consistently (one weight per screen, typically regular or thin for iOS feel).",
+    "Use `expo-glass-effect` for the bottom tabs and the sticky search header in the Files screen.",
+    "Always wire up the exact haptics events mentioned in the 'haptics' block.",
+    "Based on research: Storage dashboard apps need immediate glanceability of used capacity, prominently displayed recent files, and a very quick path to upload (hence the sticky FAB over standard inline buttons)."
+  ]
+}
