@@ -41,6 +41,7 @@ export default function SaveToProjectScreen() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [hours, setHours] = useState<Record<string, number>>({});
   const [role, setRole] = useState<keyof LaborRates>("technician");
+  const [rowRoles, setRowRoles] = useState<Record<string, keyof LaborRates>>({});
   const [done, setDone] = useState<{ project: string; count: number } | null>(null);
 
   useFocusEffect(
@@ -78,11 +79,38 @@ export default function SaveToProjectScreen() {
 
   const qtyOf = (id: string) => quantities[id] ?? 1;
   const hoursOf = (id: string) => hours[id] ?? 0;
+  const roleOf = (id: string) => rowRoles[id] ?? role;
 
   const priceOf = (eq: Equipment) =>
     useSellPrice && eq.sell_price ? eq.sell_price : eq.cost;
 
   const hourlyRate = rates ? rates[role] : 0;
+  const rateOf = (id: string) => (rates ? rates[roleOf(id)] : 0);
+
+  const ROLE_ORDER: (keyof LaborRates)[] = [
+    "technician",
+    "lead_technician",
+    "engineer",
+    "project_manager",
+    "closeout",
+  ];
+
+  const cycleRowRole = (id: string) => {
+    setRowRoles((prev) => {
+      const cur = prev[id] ?? role;
+      const idx = ROLE_ORDER.indexOf(cur);
+      const next = ROLE_ORDER[(idx + 1) % ROLE_ORDER.length];
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const ROLE_ABBREV: Record<keyof LaborRates, string> = {
+    technician: "Tech",
+    lead_technician: "Lead",
+    engineer: "Engr",
+    project_manager: "PM",
+    closeout: "COx",
+  };
 
   const materialCost = useMemo(
     () => selectedEquipment.reduce((s, eq) => s + priceOf(eq) * qtyOf(eq.id), 0),
@@ -90,8 +118,8 @@ export default function SaveToProjectScreen() {
   );
 
   const laborCost = useMemo(
-    () => selectedEquipment.reduce((s, eq) => s + hoursOf(eq.id) * hourlyRate, 0),
-    [selectedEquipment, hours, hourlyRate]
+    () => selectedEquipment.reduce((s, eq) => s + hoursOf(eq.id) * rateOf(eq.id), 0),
+    [selectedEquipment, hours, rowRoles, role, rates]
   );
 
   const totalCost = materialCost + laborCost;
@@ -132,7 +160,7 @@ export default function SaveToProjectScreen() {
         quantity: qtyOf(eq.id),
         unit_cost: priceOf(eq),
         labor_hours: hoursOf(eq.id),
-        labor_role: role,
+        labor_role: roleOf(eq.id),
       }));
       await api.addItemsBulk(project.id, items);
       setDone({ project: project.name, count: items.length });
@@ -242,7 +270,7 @@ export default function SaveToProjectScreen() {
             <>
               {selectedEquipment.length > 0 && (
                 <View style={{ marginBottom: spacing.lg }} testID="qty-section">
-                  <Text style={styles.section}>Crew Role · {currency(hourlyRate)}/hr</Text>
+                  <Text style={styles.section}>Crew Role · {currency(hourlyRate)}/hr (default)</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -268,7 +296,10 @@ export default function SaveToProjectScreen() {
                     const hrs = hoursOf(eq.id);
                     const unitPrice = priceOf(eq);
                     const lineMat = unitPrice * qty;
-                    const lineLabor = hrs * hourlyRate;
+                    const rowRole = roleOf(eq.id);
+                    const rowRate = rateOf(eq.id);
+                    const lineLabor = hrs * rowRate;
+                    const overridden = rowRoles[eq.id] != null && rowRoles[eq.id] !== role;
                     return (
                       <View key={eq.id} style={styles.qtyRow} testID={`qty-row-${eq.id}`}>
                         <View style={{ flex: 1 }}>
@@ -279,6 +310,21 @@ export default function SaveToProjectScreen() {
                             {currency(lineMat)} mat
                             {lineLabor > 0 ? ` + ${currency(lineLabor)} labor` : ""}
                           </Text>
+                          <Pressable
+                            testID={`row-role-${eq.id}`}
+                            onPress={() => cycleRowRole(eq.id)}
+                            hitSlop={6}
+                            style={[styles.roleBadge, overridden && styles.roleBadgeOverridden]}
+                          >
+                            <Ionicons
+                              name="person-outline"
+                              size={11}
+                              color={overridden ? colors.brandPrimary : colors.muted}
+                            />
+                            <Text style={[styles.roleBadgeText, overridden && styles.roleBadgeTextOverridden]}>
+                              {ROLE_ABBREV[rowRole]} · ${rowRate.toFixed(0)}/hr
+                            </Text>
+                          </Pressable>
                         </View>
                         <View style={styles.controlsCol}>
                           <View style={styles.controlGroup}>
@@ -506,4 +552,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   summaryBreakdown: { fontSize: 11, color: colors.brandPrimary, marginTop: 2, fontWeight: "600" },
+  roleBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  roleBadgeOverridden: { borderColor: colors.brandPrimary, backgroundColor: colors.brandTertiary },
+  roleBadgeText: { fontSize: 10, fontWeight: "700", color: colors.muted },
+  roleBadgeTextOverridden: { color: colors.brandPrimary },
 });
