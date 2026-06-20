@@ -39,6 +39,7 @@ export default function RootLayout() {
           <Stack.Screen name="project/new" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
           <Stack.Screen name="project/[id]/index" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="project/[id]/add-item" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+          <Stack.Screen name="project/[id]/documents" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="equipment/new" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
         </Stack>
       </SafeAreaProvider>

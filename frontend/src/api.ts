@@ -66,6 +66,42 @@ export type EstimateSummary = {
   item_count: number;
 };
 
+export type ScopeDoc = {
+  overview: string;
+  inclusions: string;
+  exclusions: string;
+  testing: string;
+  training: string;
+  warranty: string;
+};
+
+export type ProposalDoc = {
+  executive_summary: string;
+  technical_approach: string;
+  price_summary: string;
+  assumptions: string;
+  exclusions: string;
+  acceptance: string;
+};
+
+export type BoeDoc = {
+  basis_of_labor: string;
+  basis_of_material: string;
+  risk_factors: string;
+  schedule_assumptions: string;
+  clarifications: string;
+};
+
+export type ProjectDocuments = {
+  project_id: string;
+  scope: ScopeDoc;
+  proposal: ProposalDoc;
+  boe: BoeDoc;
+  updated_at: string;
+};
+
+export type DocSection = "scope" | "proposal" | "boe";
+
 async function h<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const t = await res.text();
@@ -124,6 +160,20 @@ export const api = {
     fetch(`${BASE}/api/projects/${projectId}/items/${itemId}`, { method: "DELETE" }).then((r) => h(r)),
   estimate: (projectId: string) =>
     fetch(`${BASE}/api/projects/${projectId}/estimate`).then((r) => h<EstimateSummary>(r)),
+
+  // Documents (Phase 2)
+  getDocuments: (projectId: string) =>
+    fetch(`${BASE}/api/projects/${projectId}/documents`).then((r) => h<ProjectDocuments>(r)),
+  saveDocuments: (projectId: string, docs: ProjectDocuments) =>
+    fetch(`${BASE}/api/projects/${projectId}/documents`, {
+      method: "PUT",
+      headers: J,
+      body: JSON.stringify(docs),
+    }).then((r) => h<ProjectDocuments>(r)),
+  generateDocuments: (projectId: string, section: DocSection | "all" = "all") =>
+    fetch(`${BASE}/api/projects/${projectId}/documents/generate?section=${section}`, {
+      method: "POST",
+    }).then((r) => h<ProjectDocuments>(r)),
 };
 
 export function currency(n: number) {

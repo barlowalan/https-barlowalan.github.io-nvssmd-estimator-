@@ -116,6 +116,37 @@ export default function ProjectDetail() {
           <Meta label="Type" value={project.project_type} />
         </View>
 
+        <Text style={styles.section}>Documents</Text>
+        <View style={styles.docsRow}>
+          <DocTile
+            testID="doc-scope"
+            icon="document-text-outline"
+            title="Scope"
+            sub="Division 28 language"
+            onPress={() =>
+              router.push({ pathname: "/project/[id]/documents", params: { id: project.id, tab: "scope" } })
+            }
+          />
+          <DocTile
+            testID="doc-proposal"
+            icon="newspaper-outline"
+            title="Proposal"
+            sub="Exec summary & price"
+            onPress={() =>
+              router.push({ pathname: "/project/[id]/documents", params: { id: project.id, tab: "proposal" } })
+            }
+          />
+          <DocTile
+            testID="doc-boe"
+            icon="analytics-outline"
+            title="BOE"
+            sub="Basis of estimate"
+            onPress={() =>
+              router.push({ pathname: "/project/[id]/documents", params: { id: project.id, tab: "boe" } })
+            }
+          />
+        </View>
+
         <Text style={styles.section}>System Counts</Text>
         <View style={styles.countsRow}>
           <Stat icon="videocam-outline" label="Cameras" value={project.counts.cameras} />
@@ -192,6 +223,26 @@ function Stat({ icon, label, value }: { icon: any; label: string; value: number 
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
+  );
+}
+
+function DocTile({
+  testID, icon, title, sub, onPress,
+}: {
+  testID: string; icon: any; title: string; sub: string; onPress: () => void;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      style={({ pressed }) => [styles.docTile, pressed && { opacity: 0.8 }]}
+    >
+      <View style={styles.docIcon}>
+        <Ionicons name={icon} size={20} color={colors.brandPrimary} />
+      </View>
+      <Text style={styles.docTitle}>{title}</Text>
+      <Text style={styles.docSub} numberOfLines={1}>{sub}</Text>
+    </Pressable>
   );
 }
 
@@ -286,4 +337,22 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: fontSize.base, fontWeight: "600", color: colors.onSurface },
   itemSub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 4 },
   itemPrice: { fontSize: fontSize.base, fontWeight: "700", color: colors.brandPrimary, marginBottom: 8 },
+  docsRow: { flexDirection: "row", gap: spacing.sm },
+  docTile: {
+    flex: 1,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "flex-start",
+  },
+  docIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.brandTertiary,
+    justifyContent: "center", alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  docTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.onSurface },
+  docSub: { fontSize: 11, color: colors.muted, marginTop: 2 },
 });

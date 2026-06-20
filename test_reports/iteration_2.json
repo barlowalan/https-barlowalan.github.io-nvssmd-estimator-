@@ -1,0 +1,31 @@
+{
+  "summary": "Phase 2 (Documents: Scope/Proposal/BOE) fully tested. Backend: 8/8 pytest tests PASSED — GET defaults, PUT persists with updated_at, generate single-section preserves others, generate=all populates all 3 sections, proposal price_summary contains material/labor/total matching /estimate, and 404 on missing project for all 3 endpoints. Frontend (mobile viewport 390x844): Project detail Documents section renders 3 tiles, each tile opens the editor on the correct tab (scope/proposal/boe), tabs switch correctly, empty-state banner shows on empty section and disappears after Auto-fill, Auto-fill populates all 6/6 scope fields (and proposal exec_summary 226 chars, price_summary contains $), Save persists and TEST_EDIT survives navigate-away-and-back, generating one section does NOT clobber the others in the UI. Share-as-PDF button is wired and does not crash on web (logs a non-fatal warning because expo-print returns undefined uri on web — acceptable per request).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "documents", "issues": ["On web, tapping Share triggers a console TypeError because expo-print's printToFileAsync resolves to undefined; app does not crash but a Platform.OS==='web' guard (or try/catch around destructuring) would silence the warning."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_documents.py",
+    "/app/test_reports/pytest/phase2_documents.xml"
+  ],
+  "action_items": [
+    "Optional polish: in app/project/[id]/documents.tsx onSharePdf, short-circuit when Platform.OS === 'web' (or guard against undefined result from Print.printToFileAsync) to avoid the 'Cannot destructure property uri of undefined' console warning on web preview. Native PDF share remains untestable here and should be verified in Expo Go / native build."
+  ],
+  "critical_code_review_comments": [
+    "Documents endpoints in server.py are clean: defaults via Pydantic Field(default_factory=...), 404 guards on all 3 routes, generate merges into existing doc so per-section regen preserves the other two, updated_at stamped on every write, _id excluded from all queries.",
+    "Generated content references live project data (customer, site, counts) and live estimate numbers ($material/labor/total) — verified by test_proposal_price_summary_matches_estimate.",
+    "Frontend documents.tsx correctly: uses testIDs on every interactive element, uses ScrollView + KeyboardAvoidingView, computes isEmpty from sectionDoc, disables Save when !dirty, uses Pressable/Text/View (no HTML), and StyleSheet.create."
+  ],
+  "updated_files": ["/app/backend/tests/test_documents.py (new)"],
+  "success_rate": {"backend": "100% (8/8 Phase 2 + Phase 1 still green)", "frontend": "100% of Phase 2 flows (3 tiles, 3 tabs, auto-fill, save, persistence, no-clobber, empty banner)"},
+  "seed_data_creation": "Tests create TEST_-prefixed project + 2 items and delete them on teardown. UI test creates TEST_UI_Docs_<ts> project and deletes via API at end.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase 1 (iteration_1) + Phase 2 (this iteration) both green. Documents endpoints: GET/PUT/POST-generate at /api/projects/{id}/documents. Generated content keys: scope{overview,inclusions,exclusions,testing,training,warranty}, proposal{executive_summary,technical_approach,price_summary,assumptions,exclusions,acceptance}, boe{basis_of_labor,basis_of_material,risk_factors,schedule_assumptions,clarifications}. Frontend documents editor at /project/[id]/documents?tab=scope|proposal|boe.",
+  "rca_of_issue": "Share-PDF console warning RCA: expo-print's Print.printToFileAsync is a no-op on web and returns undefined, so `const { uri } = await Print.printToFileAsync(...)` throws when destructuring. Non-blocking; native build will work. Mitigation: add Platform.OS check or null-safe destructure."
+}
