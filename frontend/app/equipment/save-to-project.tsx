@@ -7,13 +7,21 @@ import {
   FlatList,
   ActivityIndicator,
   Switch,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
-import { api, currency, Equipment, Project } from "@/src/api";
+import {
+  api,
+  currency,
+  Equipment,
+  Project,
+  LaborRates,
+  ROLE_LABELS,
+} from "@/src/api";
 
 export default function SaveToProjectScreen() {
   const { ids: idsParam } = useLocalSearchParams<{ ids?: string }>();
@@ -26,24 +34,34 @@ export default function SaveToProjectScreen() {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [rates, setRates] = useState<LaborRates | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSavingId] = useState<string | null>(null);
   const [useSellPrice, setUseSellPrice] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [hours, setHours] = useState<Record<string, number>>({});
+  const [role, setRole] = useState<keyof LaborRates>("technician");
   const [done, setDone] = useState<{ project: string; count: number } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      Promise.all([api.listProjects(), api.listEquipment()])
-        .then(([ps, eqs]) => {
+      Promise.all([api.listProjects(), api.listEquipment(), api.getRates()])
+        .then(([ps, eqs, rs]) => {
           setProjects(ps);
           setEquipment(eqs);
-          // Seed qty=1 for each selected id (preserve any user edits)
+          setRates(rs);
           setQuantities((prev) => {
             const next = { ...prev };
             selectedIds.forEach((id) => {
               if (next[id] == null) next[id] = 1;
+            });
+            return next;
+          });
+          setHours((prev) => {
+            const next = { ...prev };
+            selectedIds.forEach((id) => {
+              if (next[id] == null) next[id] = 0;
             });
             return next;
           });
@@ -59,24 +77,47 @@ export default function SaveToProjectScreen() {
   );
 
   const qtyOf = (id: string) => quantities[id] ?? 1;
+  const hoursOf = (id: string) => hours[id] ?? 0;
 
   const priceOf = (eq: Equipment) =>
     useSellPrice && eq.sell_price ? eq.sell_price : eq.cost;
 
-  const totalCost = useMemo(
+  const hourlyRate = rates ? rates[role] : 0;
+
+  const materialCost = useMemo(
     () => selectedEquipment.reduce((s, eq) => s + priceOf(eq) * qtyOf(eq.id), 0),
     [selectedEquipment, useSellPrice, quantities]
   );
+
+  const laborCost = useMemo(
+    () => selectedEquipment.reduce((s, eq) => s + hoursOf(eq.id) * hourlyRate, 0),
+    [selectedEquipment, hours, hourlyRate]
+  );
+
+  const totalCost = materialCost + laborCost;
 
   const totalUnits = useMemo(
     () => selectedEquipment.reduce((s, eq) => s + qtyOf(eq.id), 0),
     [selectedEquipment, quantities]
   );
 
+  const totalHours = useMemo(
+    () => selectedEquipment.reduce((s, eq) => s + hoursOf(eq.id), 0),
+    [selectedEquipment, hours]
+  );
+
   const bumpQty = (id: string, delta: number) => {
     setQuantities((prev) => {
       const cur = prev[id] ?? 1;
       const nextVal = Math.max(1, Math.min(999, cur + delta));
+      return { ...prev, [id]: nextVal };
+    });
+  };
+
+  const bumpHours = (id: string, delta: number) => {
+    setHours((prev) => {
+      const cur = prev[id] ?? 0;
+      const nextVal = Math.max(0, Math.min(99, Math.round((cur + delta) * 2) / 2));
       return { ...prev, [id]: nextVal };
     });
   };
@@ -90,8 +131,8 @@ export default function SaveToProjectScreen() {
         equipment_id: eq.id,
         quantity: qtyOf(eq.id),
         unit_cost: priceOf(eq),
-        labor_hours: 0,
-        labor_role: "technician" as const,
+        labor_hours: hoursOf(eq.id),
+        labor_role: role,
       }));
       await api.addItemsBulk(project.id, items);
       setDone({ project: project.name, count: items.length });
@@ -149,10 +190,16 @@ export default function SaveToProjectScreen() {
       <View style={styles.summaryCard} testID="selection-summary">
         <View style={{ flex: 1 }}>
           <Text style={styles.summaryLabel}>SELECTED</Text>
-          <Text style={styles.summaryValue}>
+          <Text style={styles.summaryValue}>{currency(totalCost)}</Text>
+          <Text style={styles.summarySub}>
             {selectedEquipment.length} {selectedEquipment.length === 1 ? "product" : "products"}
+            {" · "}{totalUnits} units{totalHours > 0 ? ` · ${totalHours}h labor` : ""}
           </Text>
-          <Text style={styles.summarySub}>{currency(totalCost)} total · {totalUnits} units</Text>
+          {laborCost > 0 && (
+            <Text style={styles.summaryBreakdown}>
+              {currency(materialCost)} mat + {currency(laborCost)} labor
+            </Text>
+          )}
         </View>
         <View style={styles.sellRow}>
           <Text style={styles.sellLabel}>Sell price</Text>
@@ -195,10 +242,33 @@ export default function SaveToProjectScreen() {
             <>
               {selectedEquipment.length > 0 && (
                 <View style={{ marginBottom: spacing.lg }} testID="qty-section">
-                  <Text style={styles.section}>Quantities</Text>
+                  <Text style={styles.section}>Crew Role · {currency(hourlyRate)}/hr</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.md }}
+                  >
+                    {(Object.keys(ROLE_LABELS) as (keyof LaborRates)[]).map((r) => (
+                      <Pressable
+                        key={r}
+                        testID={`role-${r}`}
+                        onPress={() => setRole(r)}
+                        style={[styles.rolePill, role === r && styles.rolePillActive]}
+                      >
+                        <Text style={[styles.roleText, role === r && styles.roleTextActive]}>
+                          {ROLE_LABELS[r]}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  <Text style={styles.section}>Quantities & Labor</Text>
                   {selectedEquipment.map((eq) => {
                     const qty = qtyOf(eq.id);
+                    const hrs = hoursOf(eq.id);
                     const unitPrice = priceOf(eq);
+                    const lineMat = unitPrice * qty;
+                    const lineLabor = hrs * hourlyRate;
                     return (
                       <View key={eq.id} style={styles.qtyRow} testID={`qty-row-${eq.id}`}>
                         <View style={{ flex: 1 }}>
@@ -206,28 +276,59 @@ export default function SaveToProjectScreen() {
                             {eq.manufacturer} {eq.model}
                           </Text>
                           <Text style={styles.qtySub}>
-                            {currency(unitPrice)} × {qty} = {currency(unitPrice * qty)}
+                            {currency(lineMat)} mat
+                            {lineLabor > 0 ? ` + ${currency(lineLabor)} labor` : ""}
                           </Text>
                         </View>
-                        <View style={styles.stepper}>
-                          <Pressable
-                            testID={`qty-down-${eq.id}`}
-                            onPress={() => bumpQty(eq.id, -1)}
-                            disabled={qty <= 1}
-                            hitSlop={6}
-                            style={[styles.stepBtn, qty <= 1 && { opacity: 0.35 }]}
-                          >
-                            <Ionicons name="remove" size={16} color={colors.brandPrimary} />
-                          </Pressable>
-                          <Text style={styles.qtyText} testID={`qty-val-${eq.id}`}>{qty}</Text>
-                          <Pressable
-                            testID={`qty-up-${eq.id}`}
-                            onPress={() => bumpQty(eq.id, 1)}
-                            hitSlop={6}
-                            style={styles.stepBtn}
-                          >
-                            <Ionicons name="add" size={16} color={colors.brandPrimary} />
-                          </Pressable>
+                        <View style={styles.controlsCol}>
+                          <View style={styles.controlGroup}>
+                            <Text style={styles.controlLabel}>Qty</Text>
+                            <View style={styles.stepper}>
+                              <Pressable
+                                testID={`qty-down-${eq.id}`}
+                                onPress={() => bumpQty(eq.id, -1)}
+                                disabled={qty <= 1}
+                                hitSlop={6}
+                                style={[styles.stepBtn, qty <= 1 && { opacity: 0.35 }]}
+                              >
+                                <Ionicons name="remove" size={14} color={colors.brandPrimary} />
+                              </Pressable>
+                              <Text style={styles.qtyText} testID={`qty-val-${eq.id}`}>{qty}</Text>
+                              <Pressable
+                                testID={`qty-up-${eq.id}`}
+                                onPress={() => bumpQty(eq.id, 1)}
+                                hitSlop={6}
+                                style={styles.stepBtn}
+                              >
+                                <Ionicons name="add" size={14} color={colors.brandPrimary} />
+                              </Pressable>
+                            </View>
+                          </View>
+                          <View style={styles.controlGroup}>
+                            <Text style={styles.controlLabel}>Hours</Text>
+                            <View style={styles.stepper}>
+                              <Pressable
+                                testID={`hr-down-${eq.id}`}
+                                onPress={() => bumpHours(eq.id, -0.5)}
+                                disabled={hrs <= 0}
+                                hitSlop={6}
+                                style={[styles.stepBtn, hrs <= 0 && { opacity: 0.35 }]}
+                              >
+                                <Ionicons name="remove" size={14} color={colors.brandPrimary} />
+                              </Pressable>
+                              <Text style={styles.qtyText} testID={`hr-val-${eq.id}`}>
+                                {hrs % 1 === 0 ? hrs : hrs.toFixed(1)}
+                              </Text>
+                              <Pressable
+                                testID={`hr-up-${eq.id}`}
+                                onPress={() => bumpHours(eq.id, 0.5)}
+                                hitSlop={6}
+                                style={styles.stepBtn}
+                              >
+                                <Ionicons name="add" size={14} color={colors.brandPrimary} />
+                              </Pressable>
+                            </View>
+                          </View>
                         </View>
                       </View>
                     );
@@ -367,26 +468,42 @@ const styles = StyleSheet.create({
   },
   qtyTitle: { fontSize: fontSize.base, fontWeight: "600", color: colors.onSurface },
   qtySub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 2 },
+  controlsCol: { gap: 6 },
+  controlGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  controlLabel: { fontSize: 10, color: colors.muted, fontWeight: "700", width: 32 },
+  rolePill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSecondary,
+    flexShrink: 0,
+  },
+  rolePillActive: { borderColor: colors.brandPrimary, backgroundColor: colors.brandTertiary },
+  roleText: { fontSize: fontSize.sm, color: colors.muted, fontWeight: "600" },
+  roleTextActive: { color: colors.onBrandTertiary },
   stepper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 4,
     backgroundColor: colors.surface,
     borderRadius: radius.pill,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingHorizontal: 3,
+    paddingVertical: 3,
     borderWidth: 1,
     borderColor: colors.brandPrimary,
   },
   stepBtn: {
-    width: 32, height: 32, borderRadius: 16,
+    width: 26, height: 26, borderRadius: 13,
     justifyContent: "center", alignItems: "center",
   },
   qtyText: {
-    minWidth: 24,
+    minWidth: 28,
     textAlign: "center",
     fontWeight: "700",
     color: colors.onSurface,
-    fontSize: fontSize.base,
+    fontSize: fontSize.sm,
   },
+  summaryBreakdown: { fontSize: 11, color: colors.brandPrimary, marginTop: 2, fontWeight: "600" },
 });
