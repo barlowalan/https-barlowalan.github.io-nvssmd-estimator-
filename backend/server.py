@@ -749,13 +749,28 @@ footer {{ margin-top: 20px; padding-top: 8px; border-top: 1px solid #E5E5EA;
 @api_router.get("/projects/{project_id}/export.pdf")
 async def export_project_pdf(project_id: str):
     """Server-rendered PDF for headless / scheduled exports."""
-    from xhtml2pdf import pisa
+    pdf_bytes, filename = await _render_project_pdf_bytes(project_id)
+    if pdf_bytes is None:
+        raise HTTPException(404, "Project not found")
+
     import io as _io
     from fastapi.responses import StreamingResponse
 
+    return StreamingResponse(
+        _io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+async def _render_project_pdf_bytes(project_id: str) -> tuple[Optional[bytes], str]:
+    """Render the project's PDF and return (bytes, filename). Returns (None, "") on missing."""
+    from xhtml2pdf import pisa
+    import io as _io
+
     proj_doc = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not proj_doc:
-        raise HTTPException(404, "Project not found")
+        return None, ""
     project = Project(**proj_doc)
 
     rates_doc = await db.settings.find_one({"key": "labor_rates"}, {"_id": 0})
@@ -789,20 +804,181 @@ async def export_project_pdf(project_id: str):
 
     html = _build_project_html(project, est, items, docs)
 
-    pdf_buffer = _io.BytesIO()
-    result = pisa.CreatePDF(src=html, dest=pdf_buffer, encoding="utf-8")
+    buf = _io.BytesIO()
+    result = pisa.CreatePDF(src=html, dest=buf, encoding="utf-8")
     if result.err:
         raise HTTPException(500, f"PDF render failed ({result.err} errors)")
-    pdf_buffer.seek(0)
 
     safe_name = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in project.name).strip("_") or "project"
-    filename = f"{safe_name}-estimate.pdf"
+    return buf.getvalue(), f"{safe_name}-estimate.pdf"
 
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+
+# ---- Signed share links ----
+import hashlib as _hashlib
+import hmac as _hmac
+import base64 as _b64
+import time as _time
+import secrets as _secrets
+
+
+_CACHED_SHARE_SECRET: Optional[str] = None
+
+
+async def _get_share_secret() -> str:
+    """Returns the HMAC secret. Persists a generated one in the settings collection."""
+    global _CACHED_SHARE_SECRET
+    if _CACHED_SHARE_SECRET:
+        return _CACHED_SHARE_SECRET
+    env_secret = os.environ.get("SHARE_SECRET")
+    if env_secret:
+        _CACHED_SHARE_SECRET = env_secret
+        return env_secret
+    doc = await db.settings.find_one({"key": "share_secret"}, {"_id": 0})
+    if doc and doc.get("value"):
+        _CACHED_SHARE_SECRET = doc["value"]
+        return _CACHED_SHARE_SECRET
+    generated = _secrets.token_urlsafe(48)
+    await db.settings.update_one(
+        {"key": "share_secret"},
+        {"$set": {"key": "share_secret", "value": generated}},
+        upsert=True,
     )
+    _CACHED_SHARE_SECRET = generated
+    return generated
+
+
+async def _make_share_token(project_id: str, expires_at_epoch: int) -> str:
+    secret = (await _get_share_secret()).encode()
+    payload = f"{project_id}|{expires_at_epoch}".encode()
+    sig = _hmac.new(secret, payload, _hashlib.sha256).hexdigest()[:32]
+    body = _b64.urlsafe_b64encode(payload).decode().rstrip("=")
+    return f"{body}.{sig}"
+
+
+async def _verify_share_token(token: str, project_id: str) -> bool:
+    try:
+        body_b64, sig = token.split(".", 1)
+    except ValueError:
+        return False
+    padding = "=" * (-len(body_b64) % 4)
+    try:
+        payload = _b64.urlsafe_b64decode(body_b64 + padding)
+        pid, exp = payload.decode().split("|")
+    except Exception:
+        return False
+    if pid != project_id:
+        return False
+    try:
+        if int(exp) < int(_time.time()):
+            return False
+    except ValueError:
+        return False
+    secret = (await _get_share_secret()).encode()
+    expected = _hmac.new(secret, payload, _hashlib.sha256).hexdigest()[:32]
+    return _hmac.compare_digest(sig, expected)
+
+
+class ShareLinkRequest(BaseModel):
+    ttl_minutes: int = 60
+
+
+class ShareLinkResponse(BaseModel):
+    path: str
+    token: str
+    expires_at: str
+    ttl_minutes: int
+
+
+@api_router.post("/projects/{project_id}/share-link", response_model=ShareLinkResponse)
+async def create_share_link(project_id: str, payload: Optional[ShareLinkRequest] = None):
+    """Mint a short-lived signed URL that lets non-app users download the project PDF."""
+    proj = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    ttl = (payload.ttl_minutes if payload else 60)
+    ttl = max(1, min(ttl, 60 * 24 * 30))  # clamp 1 min .. 30 days
+    expires_at = int(_time.time()) + ttl * 60
+    token = await _make_share_token(project_id, expires_at)
+    return ShareLinkResponse(
+        path=f"/api/share/projects/{project_id}/export.pdf?token={token}",
+        token=token,
+        expires_at=datetime.fromtimestamp(expires_at, tz=timezone.utc).isoformat(),
+        ttl_minutes=ttl,
+    )
+
+
+@api_router.get("/share/projects/{project_id}/export.pdf")
+async def public_share_pdf(project_id: str, token: str):
+    """Public endpoint reachable only with a valid signed token."""
+    if not await _verify_share_token(token, project_id):
+        raise HTTPException(403, "Invalid or expired token")
+    pdf_bytes, filename = await _render_project_pdf_bytes(project_id)
+    if pdf_bytes is None:
+        raise HTTPException(404, "Project not found")
+
+    import io as _io
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        _io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+# ---- Batch ZIP export ----
+class BatchExportRequest(BaseModel):
+    ids: List[str]
+
+
+@api_router.post("/projects/export.zip")
+async def export_projects_zip(payload: BatchExportRequest):
+    """Returns a ZIP archive of project PDFs. Missing ids are recorded in skipped.txt."""
+    import io as _io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+
+    if not payload.ids:
+        raise HTTPException(400, "No project ids provided")
+
+    buf = _io.BytesIO()
+    skipped: List[str] = []
+    rendered = 0
+    seen_names: dict[str, int] = {}
+
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for pid in payload.ids:
+            try:
+                pdf_bytes, filename = await _render_project_pdf_bytes(pid)
+            except HTTPException:
+                skipped.append(pid)
+                continue
+            if pdf_bytes is None:
+                skipped.append(pid)
+                continue
+            # Deduplicate identical filenames
+            count = seen_names.get(filename, 0)
+            seen_names[filename] = count + 1
+            zip_name = filename if count == 0 else filename.replace(".pdf", f"-{count + 1}.pdf")
+            zf.writestr(zip_name, pdf_bytes)
+            rendered += 1
+        if skipped:
+            zf.writestr("skipped.txt", "Project ids skipped (not found):\n" + "\n".join(skipped))
+
+    if rendered == 0:
+        raise HTTPException(404, "No matching projects found")
+
+    buf.seek(0)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="projects-{stamp}.zip"',
+            "X-Rendered-Count": str(rendered),
+            "X-Skipped-Count": str(len(skipped)),
+        },
+    )
+
 
 
 
