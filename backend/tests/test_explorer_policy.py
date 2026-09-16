@@ -1,13 +1,28 @@
-"""SEP Explorer free-tier policy tests."""
+"""SEP Explorer free-tier policy tests (mongomock — no live Mongo required)."""
 import os
-import pytest
-from httpx import AsyncClient, ASGITransport
+import sys
+from pathlib import Path
 
-# Ensure env before importing app
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
 os.environ.setdefault("DB_NAME", "sep_explorer_test")
 
-from server import app, db, ExplorerPolicy  # noqa: E402
+# Patch Motor with mongomock before importing the app module.
+from mongomock_motor import AsyncMongoMockClient  # noqa: E402
+import motor.motor_asyncio as motor_asyncio  # noqa: E402
+
+motor_asyncio.AsyncIOMotorClient = AsyncMongoMockClient
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+import server  # noqa: E402
+
+app = server.app
+db = server.db
+ExplorerPolicy = server.ExplorerPolicy
 
 
 @pytest.fixture
