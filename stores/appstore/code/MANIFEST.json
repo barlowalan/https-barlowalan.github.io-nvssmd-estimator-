@@ -1,0 +1,11 @@
+{
+  "platform": "appstore",
+  "syncedAt": "2026-09-16T19:13:58.829Z",
+  "version": "1.0.0",
+  "sources": [
+    "ios/SEPExplorer/**",
+    "frontend/src/explorerPolicy.ts",
+    "frontend/eas.json",
+    "stores/appstore/PrivacyInfo.xcprivacy"
+  ]
+}

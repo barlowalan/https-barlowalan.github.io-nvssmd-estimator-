@@ -8,6 +8,8 @@ Cross-platform on-site estimating for security contractors.
 | **Android** (Jetpack Compose) | [`android/SEPExplorer`](android/SEPExplorer) |
 | **Expo** (iPad + Android shared UI) | [`frontend`](frontend) |
 | **API** | [`backend`](backend) |
+| **App Store package** | [`stores/appstore`](stores/appstore) |
+| **Play Store package** | [`stores/playstore`](stores/playstore) |
 
 ## ExplorerPolicy
 
@@ -21,9 +23,21 @@ includesProjectManagement = false
 includesFinance = false
 ```
 
+## Store-ready testing
+
+```bash
+cd frontend
+yarn install
+yarn store:prepare          # assets + sync per-store code + tests
+yarn build:ios:preview      # TestFlight-style (needs EAS login)
+yarn build:android:preview  # Play internal APK (needs EAS login)
+```
+
+See [`stores/README.md`](stores/README.md) for App Store / Play submit steps.
+
 ## Quick start (Expo)
 
 ```bash
-cd backend && uvicorn server:app --reload --host 0.0.0.0 --port 8000
+cd backend && python3 run_demo.py
 cd frontend && yarn && EXPO_PUBLIC_BACKEND_URL=http://localhost:8000 yarn start
 ```

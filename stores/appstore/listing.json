@@ -1,0 +1,32 @@
+{
+  "platform": "ios",
+  "name": "SEP Explorer",
+  "subtitle": "On-site security estimating",
+  "bundleId": "com.nvssmd.sepexplorer",
+  "sku": "SEP-EXPLORER-IOS",
+  "primaryCategory": "Business",
+  "secondaryCategory": "Productivity",
+  "ageRating": "4+",
+  "price": "Free",
+  "availability": "All territories",
+  "promotionalText": "Free Explorer tier — 10 projects, 50 catalog items, 20 labor rates.",
+  "description": "SEP Explorer is the free tier of Security Estimator Pro™ for security contractors.\n\nWalk the site and capture:\n• Projects with system counts (CCTV, doors, IDS, intercoms, cabling)\n• Equipment catalog\n• Labor rates that power every estimate\n• Live material + labor + OH&P totals\n\nExplorer limits (Free):\n• 10 active projects\n• 50 catalog records\n• 20 labor records\n\nNot included: drawing layouts, project management, or finance/invoicing.\n\nExplore. Discover. Integrate.",
+  "keywords": "security,estimating,CCTV,access control,contractor,NVSSMD,SEP",
+  "supportUrl": "https://nvssmd.com/sep-explorer/support",
+  "marketingUrl": "https://nvssmd.com",
+  "privacyPolicyUrl": "https://nvssmd.com/sep-explorer/privacy",
+  "copyright": "2026 NVSSMD, LLC",
+  "reviewNotes": "SEP Explorer is a free offline-capable estimating utility. No account login is required. Create a sample project from New Project to evaluate core flows. Document picker is used only for optional CSV equipment import.",
+  "screenshots": {
+    "ipad_12_9": [
+      "assets/screenshots/ipad-01-projects.png",
+      "assets/screenshots/ipad-02-catalog.png",
+      "assets/screenshots/ipad-03-settings.png"
+    ],
+    "iphone_6_7": [
+      "assets/screenshots/iphone-01-projects.png",
+      "assets/screenshots/iphone-02-catalog.png",
+      "assets/screenshots/iphone-03-settings.png"
+    ]
+  }
+}

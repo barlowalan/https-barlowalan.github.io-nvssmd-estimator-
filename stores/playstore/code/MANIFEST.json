@@ -1,0 +1,11 @@
+{
+  "platform": "playstore",
+  "syncedAt": "2026-09-16T19:13:58.836Z",
+  "version": "1.0.0",
+  "sources": [
+    "android/SEPExplorer/**",
+    "frontend/src/explorerPolicy.ts",
+    "frontend/eas.json",
+    "stores/playstore/data-safety.json"
+  ]
+}

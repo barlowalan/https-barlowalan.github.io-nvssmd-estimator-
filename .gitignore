@@ -86,3 +86,10 @@ android-sdk/
 credentials.json
 *.key
 .credentials
+
+# Store secrets (never commit)
+stores/playstore/google-play-service-account.json
+frontend/google-services.json
+*.jks
+*.keystore
+AuthKey_*.p8
