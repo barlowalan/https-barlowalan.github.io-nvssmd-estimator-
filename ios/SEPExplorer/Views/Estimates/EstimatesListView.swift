@@ -19,9 +19,13 @@ struct EstimatesListView: View {
                 Section {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("SEP EXPLORER")
+                            Text("SEP")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(ExplorerTheme.brandPrimary)
+                                .foregroundStyle(ExplorerTheme.brandNavy)
+                                .tracking(1.2)
+                            Text("EXPLORER™")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(ExplorerTheme.brandExplorer)
                                 .tracking(1.2)
                             Text("Projects")
                                 .font(.largeTitle.bold())

@@ -24,7 +24,7 @@
       "package": "com.nvssmd.sepexplorer",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#F9F9F7"
+        "backgroundColor": "#0A1B3A"
       },
       "edgeToEdgeEnabled": true
     },
@@ -39,9 +39,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#F9F9F7"
+          "backgroundColor": "#0A1B3A"
         }
       ]
     ],

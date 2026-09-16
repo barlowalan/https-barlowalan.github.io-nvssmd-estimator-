@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -68,11 +69,22 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.brand}>SEP EXPLORER</Text>
-        <Text style={styles.title}>Settings</Text>
-        <Text style={styles.sub}>
-          {ExplorerPolicy.tier} · {ExplorerPolicy.price} — labor rates power every estimate
-        </Text>
+        <View style={styles.brandRow}>
+          <Image
+            source={require("@/assets/images/sep-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="SEP Security Estimator Pro"
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.brand}>SEP</Text>
+            <Text style={styles.brandExplorer}>EXPLORER™</Text>
+            <Text style={styles.title}>Settings</Text>
+            <Text style={styles.sub}>
+              {ExplorerPolicy.tier} · {ExplorerPolicy.price} — Explore. Discover. Integrate.
+            </Text>
+          </View>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -160,11 +172,25 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  logo: {
+    width: 64,
+    height: 72,
+    borderRadius: radius.sm,
+    backgroundColor: colors.brandNavy,
+  },
   brand: {
     fontSize: fontSize.sm,
-    color: colors.brandPrimary,
-    fontWeight: "700",
+    color: colors.brandNavy,
+    fontWeight: "800",
     letterSpacing: 2,
+  },
+  brandExplorer: {
+    fontSize: fontSize.sm,
+    color: colors.brandExplorer,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginTop: 1,
   },
   title: { fontSize: 28, fontWeight: "700", color: colors.onSurface, marginTop: 2 },
   sub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 2 },

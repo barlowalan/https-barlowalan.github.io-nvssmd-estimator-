@@ -29,9 +29,11 @@ struct ExplorerRootView: View {
 }
 
 enum ExplorerTheme {
-    static let surface = Color(red: 0.976, green: 0.976, blue: 0.969)
-    static let brandPrimary = Color(red: 0.357, green: 0.482, blue: 0.427)
-    static let brandTertiary = Color(red: 0.929, green: 0.945, blue: 0.937)
-    static let onSurface = Color(red: 0.110, green: 0.110, blue: 0.118)
-    static let muted = Color(red: 0.557, green: 0.557, blue: 0.576)
+    static let surface = Color(red: 0.957, green: 0.965, blue: 0.973)
+    static let brandPrimary = Color(red: 0.773, green: 0.627, blue: 0.349) // gold
+    static let brandNavy = Color(red: 0.039, green: 0.106, blue: 0.227)
+    static let brandExplorer = Color(red: 0.310, green: 0.639, blue: 0.851)
+    static let brandTertiary = Color(red: 0.953, green: 0.922, blue: 0.843)
+    static let onSurface = Color(red: 0.039, green: 0.106, blue: 0.227)
+    static let muted = Color(red: 0.420, green: 0.451, blue: 0.502)
 }

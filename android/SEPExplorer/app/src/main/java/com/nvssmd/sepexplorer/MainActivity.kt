@@ -26,10 +26,12 @@ import com.nvssmd.sepexplorer.data.*
 import java.text.NumberFormat
 import java.util.Locale
 
-private val BrandPrimary = Color(0xFF5B7B6D)
-private val Surface = Color(0xFFF9F9F7)
-private val BrandTertiary = Color(0xFFEDF1EF)
-private val Muted = Color(0xFF8E8E93)
+private val BrandPrimary = Color(0xFFC5A059)
+private val BrandNavy = Color(0xFF0A1B3A)
+private val BrandExplorer = Color(0xFF4FA3D9)
+private val Surface = Color(0xFFF4F6F8)
+private val BrandTertiary = Color(0xFFF3EBD7)
+private val Muted = Color(0xFF6B7380)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(
                 colorScheme = lightColorScheme(
                     primary = BrandPrimary,
+                    onPrimary = BrandNavy,
                     background = Surface,
                     surface = Color.White,
                 )

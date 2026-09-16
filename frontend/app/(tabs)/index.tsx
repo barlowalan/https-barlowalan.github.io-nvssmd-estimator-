@@ -78,12 +78,14 @@ export default function ProjectsScreen() {
       <View style={styles.header}>
         <View style={styles.brandRow}>
           <Image
-            source={require("@/assets/images/logo.png")}
+            source={require("@/assets/images/sep-logo.png")}
             style={styles.logo}
             resizeMode="contain"
+            accessibilityLabel="SEP Security Estimator Pro"
           />
-          <View>
-            <Text style={styles.brand}>SEP EXPLORER</Text>
+          <View style={{ flexShrink: 1 }}>
+            <Text style={styles.brand}>SEP</Text>
+            <Text style={styles.brandExplorer}>EXPLORER™</Text>
             <Text style={styles.title}>Projects</Text>
             <Text style={styles.tierHint} testID="explorer-project-quota">
               {projects.length}/{ExplorerPolicy.activeProjectLimit} active · {ExplorerPolicy.price}
@@ -191,12 +193,24 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize: fontSize.sm,
-    color: colors.brandPrimary,
-    fontWeight: "700",
+    color: colors.brandNavy,
+    fontWeight: "800",
     letterSpacing: 2,
   },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  logo: { width: 44, height: 44 },
+  brandExplorer: {
+    fontSize: fontSize.sm,
+    color: colors.brandExplorer,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginTop: 1,
+  },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  logo: {
+    width: 64,
+    height: 72,
+    borderRadius: radius.sm,
+    backgroundColor: colors.brandNavy,
+  },
   title: { fontSize: 28, fontWeight: "700", color: colors.onSurface, marginTop: 2 },
   tierHint: { fontSize: 11, color: colors.muted, marginTop: 2 },
   headerStats: { alignItems: "flex-end" },
