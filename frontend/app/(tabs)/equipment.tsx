@@ -7,6 +7,7 @@ import {
   FlatList,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,10 +15,16 @@ import { useRouter, useFocusEffect } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api, currency, Equipment, CATEGORIES } from "@/src/api";
+import {
+  ExplorerPolicy,
+  canCreateCatalogRecord,
+  catalogLimitMessage,
+} from "@/src/explorerPolicy";
 
 export default function EquipmentScreen() {
   const router = useRouter();
   const [items, setItems] = useState<Equipment[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<string>("all");
   const [selectMode, setSelectMode] = useState(false);
@@ -25,8 +32,12 @@ export default function EquipmentScreen() {
 
   const load = useCallback(async () => {
     try {
-      const list = await api.listEquipment(category === "all" ? undefined : category);
+      const [list, all] = await Promise.all([
+        api.listEquipment(category === "all" ? undefined : category),
+        category === "all" ? Promise.resolve(null) : api.listEquipment(),
+      ]);
       setItems(list);
+      setCatalogTotal(all ? all.length : list.length);
     } catch (e) {
       console.warn(e);
     } finally {
@@ -79,7 +90,12 @@ export default function EquipmentScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Equipment Library</Text>
+        <View>
+          <Text style={styles.title}>Equipment Catalog</Text>
+          <Text style={styles.quota} testID="explorer-catalog-quota">
+            {catalogTotal}/{ExplorerPolicy.catalogRecordLimit} catalog records
+          </Text>
+        </View>
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
           {selectMode ? (
             <Pressable
@@ -100,14 +116,26 @@ export default function EquipmentScreen() {
               </Pressable>
               <Pressable
                 testID="import-equipment-button"
-                onPress={() => router.push("/equipment/import")}
+                onPress={() => {
+                  if (!canCreateCatalogRecord(catalogTotal)) {
+                    Alert.alert("Catalog limit reached", catalogLimitMessage(catalogTotal));
+                    return;
+                  }
+                  router.push("/equipment/import");
+                }}
                 style={[styles.iconBtn, styles.iconBtnGhost]}
               >
                 <Ionicons name="cloud-upload-outline" size={18} color={colors.brandPrimary} />
               </Pressable>
               <Pressable
                 testID="add-equipment-button"
-                onPress={() => router.push("/equipment/new")}
+                onPress={() => {
+                  if (!canCreateCatalogRecord(catalogTotal)) {
+                    Alert.alert("Catalog limit reached", catalogLimitMessage(catalogTotal));
+                    return;
+                  }
+                  router.push("/equipment/new");
+                }}
                 style={[styles.iconBtn, styles.iconBtnPrimary]}
               >
                 <Ionicons name="add" size={20} color={colors.onBrandPrimary} />
@@ -266,6 +294,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: { fontSize: 24, fontWeight: "700", color: colors.onSurface },
+  quota: { fontSize: 12, color: colors.muted, marginTop: 2 },
   iconBtn: {
     height: 44,
     minWidth: 44,

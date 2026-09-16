@@ -1,26 +1,41 @@
-# NVSSMD Mobile Estimator - PRD
+# SEP Explorer - PRD
 
 ## Vision
-Mobile-first version of the NVSSMD Security Engineering & Estimating Platform blueprint. Phase-1 MVP allows security contractors to capture project intake, system counts, devices and labor on-site, and instantly see the priced estimate (material + labor + OH&P + contingency).
+**SEP Explorer** is the free tier of Security Estimator Pro™ — an offline-capable, on-site estimating app for security contractors on **Apple iPad** and **Android**.
 
-## Phase 1 (Implemented)
-- **Projects** (list, create, view, delete) with customer, site, type (Commercial / Federal / Union), and counts for CCTV cameras, ACS doors, IDS points, intercoms, cabling runs.
-- **Estimate engine** - per-project material + labor (hours × role-rate) + overhead/profit/contingency percentages = total sell price; live-recalculated.
-- **Line items** per project (description, qty, unit cost, labor hours, labor role) with optional pick-from-library shortcut.
-- **Equipment library** (manufacturer, model, category, cost, NDAA flag, lead time, warranty), filterable by category chip row.
-- **Labor rate builder** (technician, lead, engineer, PM, closeout) global hourly rates.
+## ExplorerPolicy (product gates)
+| Gate | Value |
+| --- | --- |
+| Tier | Explorer |
+| Price | Free |
+| Active projects | 10 |
+| Catalog records | 50 |
+| Labor records | 20 |
+| Drawing | Not included |
+| Project management | Not included |
+| Finance / invoicing | Not included |
 
-## Architecture
-- **Backend**: FastAPI + Motor/MongoDB, all `/api/*` routes, UUID ids, no `_id` in responses.
-- **Frontend**: Expo Router tabs (Projects / Equipment / Settings) + modal Stack screens for create flows + project detail.
-- **Design**: iOS-native sage-green personality per `/app/design_guidelines.json`.
+## Core entities
+- **ExplorerCustomer** — name, site, contact
+- **ExplorerEstimate** — project with system counts + OH/P/contingency
+- **ExplorerLine** — material qty/cost + labor hours/role
+- **ExplorerCatalogItem** — equipment library (≤50)
+- **ExplorerLaborRate** — hourly roles (≤20)
 
-## Out of Scope (Future Phases)
-- AI narrative writing (BOE, scope, executive summary, federal proposal)
-- PDF/DOCX export
-- Gantt / timeline view
-- Federal compliance libraries & submittal register
-- Cloud sync / licensing / multi-user collaboration
+## Platforms
+1. **iOS / iPad** — SwiftUI + SwiftData (`ios/SEPExplorer`) using the provided `@main` app entry and `ExplorerPolicy`.
+2. **Android** — Jetpack Compose local store (`android/SEPExplorer`) with identical policy.
+3. **Expo** — shared React Native UI (`frontend`) targeting iPad + Android tablets/phones, backed by FastAPI when online; enforces the same limits client- and server-side.
 
-## Business Hook
-**Pipeline value badge** in the Projects header sums every project's total sell price - a glanceable book-of-business metric estimators can quote to their VP in 2 seconds.
+## In scope
+- Project list with pipeline value
+- Create/edit estimates with line items and catalog pick
+- Equipment catalog + CSV import (capped)
+- Labor rate settings
+- PDF share of estimate (Expo)
+
+## Out of scope (Explorer)
+- Drawing / coverage layouts
+- Gantt / project management
+- Invoicing / AR / finance modules
+- Multi-user cloud licensing (paid tiers)

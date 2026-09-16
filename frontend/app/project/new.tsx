@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +16,7 @@ import { useRouter } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api } from "@/src/api";
+import { canCreateProject, projectLimitMessage } from "@/src/explorerPolicy";
 
 const TYPES = ["Commercial", "Federal", "Union"];
 
@@ -35,6 +37,11 @@ export default function NewProjectScreen() {
     if (!name.trim()) return;
     setSubmitting(true);
     try {
+      const existing = await api.listProjects();
+      if (!canCreateProject(existing.length)) {
+        Alert.alert("Project limit reached", projectLimitMessage(existing.length));
+        return;
+      }
       const project = await api.createProject({
         name: name.trim(),
         customer: customer.trim(),
@@ -53,6 +60,8 @@ export default function NewProjectScreen() {
         },
       });
       router.replace(`/project/${project.id}`);
+    } catch (e: any) {
+      Alert.alert("Could not create project", e?.message || "Unknown error");
     } finally {
       setSubmitting(false);
     }

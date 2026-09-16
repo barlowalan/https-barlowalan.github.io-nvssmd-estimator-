@@ -116,6 +116,24 @@ async function h<T>(res: Response): Promise<T> {
 const J = { "Content-Type": "application/json" };
 
 export const api = {
+  // Explorer policy
+  getExplorerPolicy: () =>
+    fetch(`${BASE}/api/explorer/policy`).then((r) =>
+      h<{
+        tier: string;
+        price: string;
+        active_project_limit: number;
+        catalog_record_limit: number;
+        labor_record_limit: number;
+        includes_drawing: boolean;
+        includes_project_management: boolean;
+        includes_finance: boolean;
+        active_projects: number;
+        catalog_records: number;
+        labor_records: number;
+      }>(r)
+    ),
+
   // Projects
   listProjects: () => fetch(`${BASE}/api/projects`).then((r) => h<Project[]>(r)),
   getProject: (id: string) =>

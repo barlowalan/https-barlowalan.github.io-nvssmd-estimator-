@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ import { useFocusEffect } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api, LaborRates, ROLE_LABELS } from "@/src/api";
+import { ExplorerPolicy } from "@/src/explorerPolicy";
 
 export default function SettingsScreen() {
   const [rates, setRates] = useState<LaborRates | null>(null);
@@ -62,11 +64,27 @@ export default function SettingsScreen() {
     }
   };
 
+  const laborCount = rates ? Object.keys(rates).length : 0;
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
-        <Text style={styles.sub}>Labor rates power every estimate</Text>
+        <View style={styles.brandRow}>
+          <Image
+            source={require("@/assets/images/sep-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="SEP Security Estimator Pro"
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.brand}>SEP</Text>
+            <Text style={styles.brandExplorer}>EXPLORER™</Text>
+            <Text style={styles.title}>Settings</Text>
+            <Text style={styles.sub}>
+              {ExplorerPolicy.tier} · {ExplorerPolicy.price} — Explore. Discover. Integrate.
+            </Text>
+          </View>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -74,6 +92,21 @@ export default function SettingsScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 140 }}>
+          <View style={styles.tierCard} testID="explorer-tier-card">
+            <Text style={styles.tierTitle}>Explorer free-tier limits</Text>
+            <Text style={styles.tierLine}>Active projects · {ExplorerPolicy.activeProjectLimit}</Text>
+            <Text style={styles.tierLine}>Catalog records · {ExplorerPolicy.catalogRecordLimit}</Text>
+            <Text style={styles.tierLine}>
+              Labor records · {laborCount}/{ExplorerPolicy.laborRecordLimit}
+            </Text>
+            <View style={styles.excludedRow}>
+              <Ionicons name="close-circle-outline" size={16} color={colors.muted} />
+              <Text style={styles.excludedText}>
+                Drawing, project management, and finance are not included in Explorer
+              </Text>
+            </View>
+          </View>
+
           <Text style={styles.section}>Hourly Labor Rates (USD)</Text>
           {loading || !rates ? (
             <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: spacing.xl }} />
@@ -139,8 +172,38 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md },
-  title: { fontSize: 28, fontWeight: "700", color: colors.onSurface },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  logo: {
+    width: 64,
+    height: 72,
+    borderRadius: radius.sm,
+    backgroundColor: colors.brandNavy,
+  },
+  brand: {
+    fontSize: fontSize.sm,
+    color: colors.brandNavy,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
+  brandExplorer: {
+    fontSize: fontSize.sm,
+    color: colors.brandExplorer,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginTop: 1,
+  },
+  title: { fontSize: 28, fontWeight: "700", color: colors.onSurface, marginTop: 2 },
   sub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 2 },
+  tierCard: {
+    backgroundColor: colors.brandTertiary,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  tierTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.onBrandTertiary, marginBottom: spacing.sm },
+  tierLine: { fontSize: fontSize.sm, color: colors.onBrandTertiary, marginTop: 2 },
+  excludedRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md, alignItems: "flex-start" },
+  excludedText: { flex: 1, fontSize: fontSize.sm, color: colors.muted, lineHeight: 18 },
   section: { fontSize: fontSize.sm, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: spacing.md },
   card: {
     backgroundColor: colors.surfaceSecondary,
