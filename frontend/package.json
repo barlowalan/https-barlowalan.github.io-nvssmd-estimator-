@@ -9,7 +9,20 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest",
+    "test:policy": "jest __tests__/explorer-policy.test.js",
+    "test:store": "jest __tests__/store-readiness.test.js && node ../stores/scripts/validate-store.js",
+    "store:sync": "node ../stores/scripts/sync-store-code.js",
+    "store:assets": "node ../stores/scripts/generate-store-assets.js",
+    "store:validate": "node ../stores/scripts/validate-store.js",
+    "store:prepare": "yarn store:assets && yarn store:sync && yarn test:store",
+    "build:ios:preview": "eas build --platform ios --profile preview",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:ios": "eas build --platform ios --profile production-ios",
+    "build:android": "eas build --platform android --profile production-android",
+    "submit:ios": "eas submit --platform ios --profile production-ios",
+    "submit:android": "eas submit --platform android --profile production-android"
   },
   "dependencies": {
     "@expo/metro-runtime": "6.1.2",
@@ -56,7 +69,17 @@
     "@types/react": "~19.1.0",
     "eslint": "9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "29.7.0",
     "typescript": "~5.9.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/__tests__"
+    ],
+    "testMatch": [
+      "**/*.test.js"
+    ]
   },
   "resolutions": {
     "@eslint/plugin-kit": "0.3.4",

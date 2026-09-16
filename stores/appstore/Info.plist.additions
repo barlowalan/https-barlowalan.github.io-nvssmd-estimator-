@@ -1,0 +1,9 @@
+<!-- Merge these keys into the Xcode / EAS-generated Info.plist for App Store builds -->
+<key>CFBundleDisplayName</key>
+<string>SEP Explorer</string>
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>SEP Explorer imports equipment price books from files you select.</string>
+<key>UIRequiresFullScreen</key>
+<false/>

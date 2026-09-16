@@ -1,0 +1,95 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "development",
+        "EXPO_PUBLIC_STORE_TARGET": "none"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "preview",
+        "EXPO_PUBLIC_STORE_TARGET": "test"
+      }
+    },
+    "production-ios": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "production",
+        "EXPO_PUBLIC_STORE_TARGET": "appstore"
+      }
+    },
+    "production-android": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "production",
+        "EXPO_PUBLIC_STORE_TARGET": "playstore"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "production",
+        "EXPO_PUBLIC_STORE_TARGET": "both"
+      }
+    }
+  },
+  "submit": {
+    "production-ios": {
+      "ios": {
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"
+      }
+    },
+    "production-android": {
+      "android": {
+        "serviceAccountKeyPath": "./stores/playstore/google-play-service-account.json",
+        "track": "internal"
+      }
+    },
+    "production": {
+      "ios": {
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./stores/playstore/google-play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "appName": "SEP Explorer",
+  "legalName": "NVSSMD, LLC",
+  "bundleIdIos": "com.nvssmd.sepexplorer",
+  "packageAndroid": "com.nvssmd.sepexplorer",
+  "version": "1.0.0",
+  "category": {
+    "ios": "Business",
+    "android": "BUSINESS"
+  },
+  "contentRating": {
+    "ios": "4+",
+    "android": "Everyone"
+  },
+  "urls": {
+    "privacy": "https://nvssmd.com/sep-explorer/privacy",
+    "support": "https://nvssmd.com/sep-explorer/support",
+    "terms": "https://nvssmd.com/sep-explorer/terms",
+    "marketing": "https://nvssmd.com"
+  },
+  "supportEmail": "support@nvssmd.com",
+  "copyright": "© 2026 NVSSMD, LLC. All rights reserved.",
+  "tagline": "Explore. Discover. Integrate.",
+  "shortDescription": "Free on-site security estimating for contractors.",
+  "fullDescription": "SEP Explorer is the free tier of Security Estimator Pro™. Capture projects, equipment catalog, and labor rates on iPad and Android while you walk the site. Limited to 10 active projects, 50 catalog records, and 20 labor roles. Drawing, project management, and finance modules are not included."
+}

@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,7 @@ import { useFocusEffect } from "expo-router";
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api, LaborRates, ROLE_LABELS } from "@/src/api";
 import { ExplorerPolicy } from "@/src/explorerPolicy";
+import { StoreConfig } from "@/src/storeConfig";
 
 export default function SettingsScreen() {
   const [rates, setRates] = useState<LaborRates | null>(null);
@@ -144,6 +146,29 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </View>
+
+          <Text style={[styles.section, { marginTop: spacing.xl }]}>Legal & support</Text>
+          <View style={styles.card}>
+            <LinkRow
+              testID="link-privacy"
+              label="Privacy Policy"
+              onPress={() => Linking.openURL(StoreConfig.privacyPolicyUrl)}
+            />
+            <LinkRow
+              testID="link-terms"
+              label="Terms of Use"
+              onPress={() => Linking.openURL(StoreConfig.termsUrl)}
+            />
+            <LinkRow
+              testID="link-support"
+              label="Support"
+              onPress={() => Linking.openURL(StoreConfig.supportUrl)}
+              last
+            />
+          </View>
+          <Text style={styles.versionLine} testID="app-version-line">
+            {StoreConfig.appName} v{StoreConfig.version} · {StoreConfig.variant}
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -166,6 +191,29 @@ export default function SettingsScreen() {
         </Pressable>
       </View>
     </SafeAreaView>
+  );
+}
+
+function LinkRow({
+  label,
+  onPress,
+  testID,
+  last,
+}: {
+  label: string;
+  onPress: () => void;
+  testID: string;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      style={[styles.linkRow, !last && styles.rateRowDivider]}
+    >
+      <Text style={styles.roleLabel}>{label}</Text>
+      <Ionicons name="open-outline" size={18} color={colors.brandExplorer} />
+    </Pressable>
   );
 }
 
@@ -242,6 +290,19 @@ const styles = StyleSheet.create({
   },
   aboutTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.onBrandTertiary },
   aboutBody: { fontSize: fontSize.sm, color: colors.onBrandTertiary, marginTop: 4, lineHeight: 18 },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  versionLine: {
+    marginTop: spacing.lg,
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    textAlign: "center",
+  },
   footer: {
     position: "absolute",
     left: 0, right: 0, bottom: 84,

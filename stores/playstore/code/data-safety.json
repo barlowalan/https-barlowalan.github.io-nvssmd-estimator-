@@ -1,0 +1,23 @@
+{
+  "approxDataSafetyForm": {
+    "collectsUserData": false,
+    "sharesUserData": false,
+    "encryptedInTransit": true,
+    "usersCanRequestDeletion": false,
+    "dataTypes": [],
+    "notes": "SEP Explorer free tier stores project, catalog, and labor data on-device or on the operator's own backend. No advertising ID, no analytics SDKs in Explorer builds. Optional CSV import reads user-selected files only."
+  },
+  "permissionsDeclared": [
+    "INTERNET",
+    "READ_EXTERNAL_STORAGE (CSV import on older Android)",
+    "WRITE_EXTERNAL_STORAGE (legacy)"
+  ],
+  "permissionsNotUsed": [
+    "CAMERA",
+    "RECORD_AUDIO",
+    "LOCATION",
+    "CONTACTS"
+  ],
+  "targetSdk": 35,
+  "appAccess": "All functionality available without login"
+}

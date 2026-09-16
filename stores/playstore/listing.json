@@ -1,0 +1,28 @@
+{
+  "platform": "android",
+  "title": "SEP Explorer",
+  "shortDescription": "Free on-site security estimating for contractors.",
+  "fullDescription": "SEP Explorer is the free tier of Security Estimator Pro™ for security contractors.\n\nWalk the site and capture:\n• Projects with system counts (CCTV, doors, IDS, intercoms, cabling)\n• Equipment catalog\n• Labor rates that power every estimate\n• Live material + labor + OH&P totals\n\nExplorer limits (Free):\n• 10 active projects\n• 50 catalog records\n• 20 labor records\n\nNot included: drawing layouts, project management, or finance/invoicing.\n\nExplore. Discover. Integrate.",
+  "packageName": "com.nvssmd.sepexplorer",
+  "applicationId": "com.nvssmd.sepexplorer",
+  "category": "Business",
+  "tags": ["productivity", "tools", "security", "estimating"],
+  "contentRating": "Everyone",
+  "price": "Free",
+  "contactEmail": "support@nvssmd.com",
+  "contactWebsite": "https://nvssmd.com",
+  "privacyPolicyUrl": "https://nvssmd.com/sep-explorer/privacy",
+  "featureGraphic": "assets/feature-graphic.png",
+  "icon": "assets/icon-512.png",
+  "phoneScreenshots": [
+    "assets/screenshots/phone-01-projects.png",
+    "assets/screenshots/phone-02-catalog.png",
+    "assets/screenshots/phone-03-settings.png"
+  ],
+  "tabletScreenshots": [
+    "assets/screenshots/tablet-01-projects.png",
+    "assets/screenshots/tablet-02-catalog.png",
+    "assets/screenshots/tablet-03-settings.png"
+  ],
+  "releaseNotes": "Initial SEP Explorer free-tier release for Android."
+}
