@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +16,11 @@ import { useRouter, useFocusEffect } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api, currency, Project, EstimateSummary } from "@/src/api";
+import {
+  ExplorerPolicy,
+  canCreateProject,
+  projectLimitMessage,
+} from "@/src/explorerPolicy";
 
 type ProjectCard = Project & { estimate?: EstimateSummary };
 
@@ -59,6 +65,14 @@ export default function ProjectsScreen() {
 
   const totalValue = projects.reduce((s, p) => s + (p.estimate?.total || 0), 0);
 
+  const onNewProject = () => {
+    if (!canCreateProject(projects.length)) {
+      Alert.alert("Project limit reached", projectLimitMessage(projects.length));
+      return;
+    }
+    router.push("/project/new");
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
@@ -69,8 +83,11 @@ export default function ProjectsScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.brand}>SECURITY ESTIMATOR PRO</Text>
+            <Text style={styles.brand}>SEP EXPLORER</Text>
             <Text style={styles.title}>Projects</Text>
+            <Text style={styles.tierHint} testID="explorer-project-quota">
+              {projects.length}/{ExplorerPolicy.activeProjectLimit} active · {ExplorerPolicy.price}
+            </Text>
           </View>
         </View>
         <View style={styles.headerStats} testID="projects-pipeline-value">
@@ -102,7 +119,8 @@ export default function ProjectsScreen() {
               </View>
               <Text style={styles.emptyTitle}>No projects yet</Text>
               <Text style={styles.emptySub}>
-                Start your first security estimate. Track devices, labor, and full project pricing in one place.
+                Start your first on-site security estimate. Explorer free tier includes{" "}
+                {ExplorerPolicy.activeProjectLimit} active projects.
               </Text>
             </View>
           }
@@ -143,7 +161,7 @@ export default function ProjectsScreen() {
 
       <Pressable
         testID="create-project-fab"
-        onPress={() => router.push("/project/new")}
+        onPress={onNewProject}
         style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.96 }] }]}
       >
         <Ionicons name="add" size={26} color={colors.onBrandPrimary} />
@@ -180,6 +198,7 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   logo: { width: 44, height: 44 },
   title: { fontSize: 28, fontWeight: "700", color: colors.onSurface, marginTop: 2 },
+  tierHint: { fontSize: 11, color: colors.muted, marginTop: 2 },
   headerStats: { alignItems: "flex-end" },
   statLabel: { fontSize: fontSize.sm, color: colors.muted },
   statValue: { fontSize: fontSize.lg, fontWeight: "700", color: colors.brandPrimary },

@@ -158,10 +158,57 @@ def strip_id(doc: dict) -> dict:
     return doc
 
 
+# ===================== Explorer free-tier policy =====================
+class ExplorerPolicy:
+    tier = "Explorer"
+    price = "Free"
+    active_project_limit = 10
+    catalog_record_limit = 50
+    labor_record_limit = 20
+    includes_drawing = False
+    includes_project_management = False
+    includes_finance = False
+
+
+class ExplorerPolicyResponse(BaseModel):
+    tier: str
+    price: str
+    active_project_limit: int
+    catalog_record_limit: int
+    labor_record_limit: int
+    includes_drawing: bool
+    includes_project_management: bool
+    includes_finance: bool
+    active_projects: int = 0
+    catalog_records: int = 0
+    labor_records: int = 0
+
+
 # ===================== Routes: Projects =====================
 @api_router.get("/")
 async def root():
-    return {"message": "Security Estimator Pro API"}
+    return {"message": "SEP Explorer API", "tier": ExplorerPolicy.tier}
+
+
+@api_router.get("/explorer/policy", response_model=ExplorerPolicyResponse)
+async def get_explorer_policy():
+    active_projects = await db.projects.count_documents({})
+    catalog_records = await db.equipment.count_documents({})
+    labor_doc = await db.settings.find_one({"key": "labor_rates"}, {"_id": 0})
+    labor_records = len((labor_doc or {}).get("value", LaborRates().dict()))
+    return ExplorerPolicyResponse(
+        tier=ExplorerPolicy.tier,
+        price=ExplorerPolicy.price,
+        active_project_limit=ExplorerPolicy.active_project_limit,
+        catalog_record_limit=ExplorerPolicy.catalog_record_limit,
+        labor_record_limit=ExplorerPolicy.labor_record_limit,
+        includes_drawing=ExplorerPolicy.includes_drawing,
+        includes_project_management=ExplorerPolicy.includes_project_management,
+        includes_finance=ExplorerPolicy.includes_finance,
+        active_projects=active_projects,
+        catalog_records=catalog_records,
+        labor_records=labor_records,
+    )
 
 
 @api_router.get("/projects", response_model=List[Project])
@@ -172,6 +219,12 @@ async def list_projects():
 
 @api_router.post("/projects", response_model=Project)
 async def create_project(payload: ProjectCreate):
+    count = await db.projects.count_documents({})
+    if count >= ExplorerPolicy.active_project_limit:
+        raise HTTPException(
+            403,
+            f"Explorer free tier allows up to {ExplorerPolicy.active_project_limit} active projects",
+        )
     project = Project(
         id=str(uuid.uuid4()),
         created_at=datetime.now(timezone.utc).isoformat(),
@@ -220,6 +273,12 @@ async def list_equipment(category: Optional[str] = None):
 
 @api_router.post("/equipment", response_model=Equipment)
 async def create_equipment(payload: EquipmentCreate):
+    count = await db.equipment.count_documents({})
+    if count >= ExplorerPolicy.catalog_record_limit:
+        raise HTTPException(
+            403,
+            f"Explorer free tier allows up to {ExplorerPolicy.catalog_record_limit} catalog records",
+        )
     eq = Equipment(id=str(uuid.uuid4()), **payload.dict())
     await db.equipment.insert_one(eq.dict())
     return eq
@@ -358,8 +417,16 @@ async def import_equipment(payload: ImportRow):
     skipped = 0
     errors: List[str] = []
     docs_to_insert = []
+    existing = await db.equipment.count_documents({})
+    remaining = max(0, ExplorerPolicy.catalog_record_limit - existing)
 
     for idx, row in enumerate(reader, start=2):
+        if len(docs_to_insert) >= remaining:
+            skipped += 1
+            errors.append(
+                f"row {idx}: catalog limit of {ExplorerPolicy.catalog_record_limit} reached (Explorer free tier)"
+            )
+            continue
         doc, err = _build_doc_from_row(row, payload.manufacturer_default)
         if err:
             skipped += 1
@@ -482,7 +549,15 @@ async def import_equipment_file(payload: ImportFile):
     skipped = 0
     errors: List[str] = []
     docs_to_insert: List[dict] = []
+    existing = await db.equipment.count_documents({})
+    remaining = max(0, ExplorerPolicy.catalog_record_limit - existing)
     for idx, row in enumerate(rows, start=2):
+        if len(docs_to_insert) >= remaining:
+            skipped += 1
+            errors.append(
+                f"row {idx}: catalog limit of {ExplorerPolicy.catalog_record_limit} reached (Explorer free tier)"
+            )
+            continue
         doc, err = _build_doc_from_row(row, payload.manufacturer_default)
         if err:
             skipped += 1

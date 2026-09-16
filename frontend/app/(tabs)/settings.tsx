@@ -16,6 +16,7 @@ import { useFocusEffect } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api, LaborRates, ROLE_LABELS } from "@/src/api";
+import { ExplorerPolicy } from "@/src/explorerPolicy";
 
 export default function SettingsScreen() {
   const [rates, setRates] = useState<LaborRates | null>(null);
@@ -62,11 +63,16 @@ export default function SettingsScreen() {
     }
   };
 
+  const laborCount = rates ? Object.keys(rates).length : 0;
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
+        <Text style={styles.brand}>SEP EXPLORER</Text>
         <Text style={styles.title}>Settings</Text>
-        <Text style={styles.sub}>Labor rates power every estimate</Text>
+        <Text style={styles.sub}>
+          {ExplorerPolicy.tier} · {ExplorerPolicy.price} — labor rates power every estimate
+        </Text>
       </View>
 
       <KeyboardAvoidingView
@@ -74,6 +80,21 @@ export default function SettingsScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 140 }}>
+          <View style={styles.tierCard} testID="explorer-tier-card">
+            <Text style={styles.tierTitle}>Explorer free-tier limits</Text>
+            <Text style={styles.tierLine}>Active projects · {ExplorerPolicy.activeProjectLimit}</Text>
+            <Text style={styles.tierLine}>Catalog records · {ExplorerPolicy.catalogRecordLimit}</Text>
+            <Text style={styles.tierLine}>
+              Labor records · {laborCount}/{ExplorerPolicy.laborRecordLimit}
+            </Text>
+            <View style={styles.excludedRow}>
+              <Ionicons name="close-circle-outline" size={16} color={colors.muted} />
+              <Text style={styles.excludedText}>
+                Drawing, project management, and finance are not included in Explorer
+              </Text>
+            </View>
+          </View>
+
           <Text style={styles.section}>Hourly Labor Rates (USD)</Text>
           {loading || !rates ? (
             <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: spacing.xl }} />
@@ -139,8 +160,24 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md },
-  title: { fontSize: 28, fontWeight: "700", color: colors.onSurface },
+  brand: {
+    fontSize: fontSize.sm,
+    color: colors.brandPrimary,
+    fontWeight: "700",
+    letterSpacing: 2,
+  },
+  title: { fontSize: 28, fontWeight: "700", color: colors.onSurface, marginTop: 2 },
   sub: { fontSize: fontSize.sm, color: colors.muted, marginTop: 2 },
+  tierCard: {
+    backgroundColor: colors.brandTertiary,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  tierTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.onBrandTertiary, marginBottom: spacing.sm },
+  tierLine: { fontSize: fontSize.sm, color: colors.onBrandTertiary, marginTop: 2 },
+  excludedRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md, alignItems: "flex-start" },
+  excludedText: { flex: 1, fontSize: fontSize.sm, color: colors.muted, lineHeight: 18 },
   section: { fontSize: fontSize.sm, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: spacing.md },
   card: {
     backgroundColor: colors.surfaceSecondary,

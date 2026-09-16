@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ import { useRouter } from "expo-router";
 
 import { colors, spacing, radius, fontSize } from "@/src/theme";
 import { api, CATEGORIES } from "@/src/api";
+import { canCreateCatalogRecord, catalogLimitMessage } from "@/src/explorerPolicy";
 
 export default function NewEquipment() {
   const router = useRouter();
@@ -34,6 +36,11 @@ export default function NewEquipment() {
     if (!canSave) return;
     setSaving(true);
     try {
+      const existing = await api.listEquipment();
+      if (!canCreateCatalogRecord(existing.length)) {
+        Alert.alert("Catalog limit reached", catalogLimitMessage(existing.length));
+        return;
+      }
       await api.createEquipment({
         manufacturer: manufacturer.trim(),
         model: model.trim(),
@@ -44,6 +51,8 @@ export default function NewEquipment() {
         warranty_years: parseInt(warranty || "1", 10),
       });
       router.back();
+    } catch (e: any) {
+      Alert.alert("Could not save equipment", e?.message || "Unknown error");
     } finally {
       setSaving(false);
     }

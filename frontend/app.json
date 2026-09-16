@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "Security Estimator Pro",
-    "slug": "security-estimator-pro",
+    "name": "SEP Explorer",
+    "slug": "sep-explorer",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "sepexplorer",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.nvssmd.sepexplorer",
       "infoPlist": {
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
@@ -20,6 +21,7 @@
       }
     },
     "android": {
+      "package": "com.nvssmd.sepexplorer",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F9F9F7"
