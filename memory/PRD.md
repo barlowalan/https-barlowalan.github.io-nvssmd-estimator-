@@ -35,10 +35,10 @@
 - PDF share of estimate (Expo)
 
 ## Out of scope (Explorer)
-- Drawing / coverage layouts → see **SEP Design** (`ios/SEPDesign`)
+- Drawing / coverage layouts → see **SEP Draw** (`ios/SEPDraw`)
 - Gantt / project management
 - Invoicing / AR / finance modules
 - Multi-user cloud licensing (paid tiers)
 
-## SEP Design (iPad drawing)
-Native SwiftUI iPad app unifying survey, Visio/CAD symbols, FOV coverage, schematics, estimating, Bluebeam-style markup, and Visio/AutoCAD/PDF import-export. Bundle ID `com.nvssmd.sepdesign`. SwiftUI sources also exported as `.txt` under `ios/SEPDesign/ExportTXT/`.
+## SEP Draw (iPad drawing)
+Native SwiftUI iPad app unifying survey, Visio/CAD symbols, FOV coverage, schematics, estimating, Bluebeam-style markup, and Visio/AutoCAD/PDF import-export. Bundle ID `com.nvssmd.sepdraw`. SwiftUI sources also exported as `.txt` under `ios/SEPDraw/ExportTXT/`.

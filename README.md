@@ -5,7 +5,7 @@ Cross-platform on-site estimating for security contractors.
 | Platform | Location |
 | --- | --- |
 | **Apple iPad** (SwiftUI + SwiftData) | [`ios/SEPExplorer`](ios/SEPExplorer) |
-| **Apple iPad Design** (SwiftUI drawing) | [`ios/SEPDesign`](ios/SEPDesign) |
+| **Apple iPad Draw** (SwiftUI drawing) | [`ios/SEPDraw`](ios/SEPDraw) |
 | **Android** (Jetpack Compose) | [`android/SEPExplorer`](android/SEPExplorer) |
 | **Expo** (iPad + Android shared UI) | [`frontend`](frontend) |
 | **API** | [`backend`](backend) |
