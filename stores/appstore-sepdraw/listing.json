@@ -9,14 +9,14 @@
   "ageRating": "4+",
   "price": "Paid / Free Trial",
   "availability": "All territories",
-  "promotionalText": "Draw IDS, access control, infrastructure & CCTV — Visio, AutoCAD & PDF in one iPad app.",
-  "description": "SEP Draw is the native iPad drawing studio in Security Estimator Pro™ for security and low-voltage professionals.\n\nDesign on-site for:\n• Intrusion (IDS)\n• Access control\n• Video surveillance with FOV coverage\n• Network / infrastructure pathways\n• AV & intercom schematics\n\nBuilt to replace a patchwork of tools — key workflows from System Surveyor, D-Tools, SiteOwl, JVSG, IPVM, XTEN-AV, Jetbuilt, Axis Site Designer, Vectorworks ConnectCAD, Specifi, ConEst, magicplan, Bluebeam, and Simply Wise — in one App Store app.\n\nImport Visio (.vsdx), AutoCAD (.dxf/.dwg), and PDF floor plans. Export PDF, DXF, Visio XML, and BOM CSV. Place Visio/CAD security symbols, run coverage cones, mark up sheets, and roll estimates into proposals.\n\nSurvey. Design. Defend.\n\nPublisher: NVSSMD, LLC",
-  "keywords": "security,CAD,Visio,AutoCAD,CCTV,access control,IDS,iPad,NVSSMD,SEP,drawing",
+  "promotionalText": "Draw IDS, access, infrastructure & CCTV on iPad — export Visio SVG, PDF, and AutoCAD DXF.",
+  "description": "SEP Draw is the native iPad drawing studio in Security Estimator Pro™ for security and low-voltage professionals.\n\nDesign on-site for:\n• Video surveillance with FOV coverage and DORI/PPF estimates\n• Access control\n• Intrusion (IDS)\n• Network / infrastructure pathways and cable routes\n\nImport PDF backgrounds and ASCII DXF. Attach DWG/VSDX for round-trip. Export Visio-compatible SVG, PDF, and AutoCAD DXF. Build drawing-linked BOM takeoffs with PoE and cable engineering checks.\n\nSurvey. Design. Defend.\n\nPublisher: NVSSMD, LLC",
+  "keywords": "security,CAD,Visio,AutoCAD,CCTV,access control,IDS,iPad,NVSSMD,SEP,drawing,DXF",
   "supportUrl": "https://nvssmd.com/sep-draw/support",
   "marketingUrl": "https://nvssmd.com",
   "privacyPolicyUrl": "https://nvssmd.com/sep-draw/privacy",
   "copyright": "2026 NVSSMD, LLC",
-  "reviewNotes": "SEP Draw is an offline-capable iPad design utility. No login required. Tap Load Sample Campus on the welcome screen to evaluate drawing, coverage, estimating, and import/export menus. Document picker is used for Visio, DXF/DWG, and PDF import only. Current App Store screenshots in the repo are labeled PLACEHOLDER — replace with simulator captures before final submit.",
+  "reviewNotes": "SEP Draw is an offline-capable iPad design utility. No login required. The sample project opens with CAM-01 and CR-01 already placed. Use Import for PDF/DXF; Export for Visio SVG, PDF, and AutoCAD DXF only. Screenshot assets in the repo may still be labeled PLACEHOLDER — replace before final submit.",
   "screenshots": {
     "ipad_12_9_landscape": [
       "assets/screenshots/ipad-12-9-01-projects.png",
@@ -29,5 +29,6 @@
   "assets": {
     "appIcon1024": "assets/icon-1024.png",
     "note": "Screenshot PNGs are stubs until replaced with real UI captures."
-  }
+  },
+  "exports": ["Visio SVG", "PDF", "AutoCAD DXF"]
 }

@@ -20,12 +20,7 @@ targets:
     type: application
     platform: iOS
     sources:
-      - path: .
-        excludes:
-          - ExportTXT/**
-          - README.md
-          - project.yml
-          - "**/*.txt"
+      - path: SEPDrawApp.swift
     resources:
       - path: Resources/Assets.xcassets
       - path: Resources/PrivacyInfo.xcprivacy
@@ -36,6 +31,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: SEP Draw
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UISupportsDocumentBrowser: YES
     entitlements:
       path: Resources/SEPDraw.entitlements
 schemes:

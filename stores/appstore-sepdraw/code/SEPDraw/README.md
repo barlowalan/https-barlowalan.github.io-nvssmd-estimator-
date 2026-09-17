@@ -1,39 +1,46 @@
-# SEP Draw — Native iPad (SwiftUI)
+# SEP Draw — Xcode Copy/Paste Edition
 
-**Security Estimator Pro · Draw** — iPad drawing app for **IDS**, **access control**, **infrastructure**, and **video surveillance**.
+Native iPad security drawing app (IDS · access control · CCTV · infrastructure).
 
-Bundle ID: `com.nvssmd.sepdraw`
+**Bundle ID:** `com.nvssmd.sepdraw`  
+**Deployment:** iPadOS 17+  
+**Source of truth:** single file `SEPDrawApp.swift`
 
-## App Store assets (in-repo)
+## Exports (only)
 
-| Item | Location |
+| Format | What you get |
 | --- | --- |
-| App Icon (1024) | `Resources/Assets.xcassets/AppIcon.appiconset/` |
-| Brand colors | `Resources/Assets.xcassets/BrandNavy.colorset`, `BrandGold`, `AccentColor` |
-| Screenshot stubs | `../../stores/appstore-sepdraw/assets/screenshots/` |
-| Submission gate list | `../../stores/appstore-sepdraw/checklist.md` |
-| Listing copy | `../../stores/appstore-sepdraw/listing.json` |
+| **Visio** | SVG vector drawing (opens / inserts in Microsoft Visio) |
+| **PDF** | Flattened drawing sheet |
+| **AutoCAD** | ASCII DXF |
 
-> Screenshot files are **placeholders**. Replace them with real simulator/device captures before Submit for Review.
+DWG / native VSDX stay attachable for round-trip; editable conversion needs licensed adapters (hooks included).
 
-## Open in Xcode
+## Xcode setup (fastest)
+
+1. Create a new **iOS App** named `SEPDraw`.
+2. Interface: **SwiftUI**; Language: **Swift**; Devices: **iPad**; deployment **iPadOS 17+**.
+3. Delete the generated App / ContentView Swift files.
+4. Add one Swift file named `SEPDrawApp.swift`.
+5. Paste the entire contents of this repo’s `SEPDrawApp.swift` (or `ExportTXT/SEPDraw_XcodeCopyPaste.swift.txt`).
+6. Optional: add `Resources/Assets.xcassets`, `Resources/Info.plist`, `Resources/PrivacyInfo.xcprivacy`, `Resources/SEPDraw.entitlements`.
+7. Run on an **iPad** simulator or device.
+
+## Or generate with XcodeGen
 
 ```bash
-brew install xcodegen   # once
-cd ios/SEPDraw
-xcodegen generate
-open SEPDraw.xcodeproj
+brew install xcodegen
+cd ios/SEPDraw && xcodegen generate && open SEPDraw.xcodeproj
 ```
 
-Or: File → New → App (SwiftUI + SwiftData), bundle `com.nvssmd.sepdraw`, iPad, iOS 17+, then add these sources and set Info.plist / entitlements / Assets.
+## Features in this build
 
-## Import / Export
+- Device library (video / access / IDS / infrastructure) with NDAA/TAA flags  
+- Canvas: place, move, cable routes, measure, PencilKit markup, FOV cones + DORI/PPF  
+- Layers, revisions, undo/redo, on-device `.sepdraw` save  
+- BOM takeoff + PoE / storage / cable engineering warnings  
+- Import: `.sepdraw`, PDF background, ASCII DXF vectors; DWG/VSDX retained as source  
 
-| Direction | Formats |
-| --- | --- |
-| Import | Visio `.vsdx`/`.vdx`, AutoCAD `.dxf`/`.dwg`, PDF |
-| Export | PDF, DXF, Visio XML, BOM CSV, SEP JSON |
+## App Store package
 
-## SwiftUI as .txt
-
-Mirrored under `ExportTXT/` including `SEPDraw_All_SwiftUI.txt`.
+See [`../../stores/appstore-sepdraw/`](../../stores/appstore-sepdraw/) — icon, screenshot stubs, and blocker checklist.

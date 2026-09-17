@@ -58,7 +58,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>SEP Draw captures site-survey photos for as-built documentation.</string>
 	<key>NSDocumentPickerUsageDescription</key>
-	<string>SEP Draw imports Visio, AutoCAD, and PDF floor plans you select.</string>
+	<string>SEP Draw imports PDF backgrounds, AutoCAD DXF, and attached DWG/VSDX source files you select.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
