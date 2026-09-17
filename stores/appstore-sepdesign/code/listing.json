@@ -1,0 +1,20 @@
+{
+  "platform": "ios",
+  "name": "SEP Design",
+  "subtitle": "Security CAD for iPad",
+  "bundleId": "com.nvssmd.sepdesign",
+  "sku": "SEP-DESIGN-IOS",
+  "primaryCategory": "Business",
+  "secondaryCategory": "Productivity",
+  "ageRating": "4+",
+  "price": "Paid / Free Trial",
+  "availability": "All territories",
+  "promotionalText": "Draw IDS, access control, infrastructure & CCTV — Visio, AutoCAD & PDF in one iPad app.",
+  "description": "SEP Design is the native iPad drawing studio in Security Estimator Pro™ for security and low-voltage professionals.\n\nDesign on-site for:\n• Intrusion (IDS)\n• Access control\n• Video surveillance with FOV coverage\n• Network / infrastructure pathways\n• AV & intercom schematics\n\nBuilt to replace a patchwork of tools — key workflows from System Surveyor, D-Tools, SiteOwl, JVSG, IPVM, XTEN-AV, Jetbuilt, Axis Site Designer, Vectorworks ConnectCAD, Specifi, ConEst, magicplan, Bluebeam, and Simply Wise — in one App Store app.\n\nImport Visio (.vsdx), AutoCAD (.dxf/.dwg), and PDF floor plans. Export PDF, DXF, Visio XML, and BOM CSV. Place Visio/CAD security symbols, run coverage cones, mark up sheets, and roll estimates into proposals.\n\nSurvey. Design. Defend.\n\nPublisher: NVSSMD, LLC",
+  "keywords": "security,CAD,Visio,AutoCAD,CCTV,access control,IDS,iPad,NVSSMD,SEP,Bluebeam,Axis",
+  "supportUrl": "https://nvssmd.com/sep-design/support",
+  "marketingUrl": "https://nvssmd.com",
+  "privacyPolicyUrl": "https://nvssmd.com/sep-design/privacy",
+  "copyright": "2026 NVSSMD, LLC",
+  "reviewNotes": "SEP Design is an offline-capable iPad design utility. No login required. Tap Load Sample Campus on the welcome screen to evaluate drawing, coverage, estimating, and import/export menus (Files → Import/Export). Document picker is used for Visio, DXF/DWG, and PDF import only."
+}
