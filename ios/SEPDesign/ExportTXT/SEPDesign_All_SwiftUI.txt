@@ -1,0 +1,3303 @@
+/* SEP Design — Full SwiftUI source export */
+/* Bundle ID: com.nvssmd.sepdesign · iPad · App Store ready */
+
+
+// ===== FILE: App/DesignPolicy.swift =====
+
+import Foundation
+import SwiftData
+
+enum DesignPolicy {
+    static let tier = "Design"
+    static let productName = "SEP Design"
+    static let legalName = "NVSSMD, LLC"
+    static let bundleId = "com.nvssmd.sepdesign"
+    static let version = "1.0.0"
+    static let tagline = "Survey. Design. Defend."
+
+    static let includesDrawing = true
+    static let includesCoverage = true
+    static let includesSchematic = true
+    static let includesEstimating = true
+    static let includesDocuments = true
+    static let includesImportExport = true
+
+    static let supportedImport = ["pdf", "vsdx", "vdx", "dxf", "dwg"]
+    static let supportedExport = ["pdf", "dxf", "vdx", "csv", "json"]
+
+    static let disciplines: [SystemDiscipline] = SystemDiscipline.allCases
+}
+
+enum SeedCatalog {
+    static func populate(context: ModelContext) {
+        let existing = (try? context.fetch(FetchDescriptor<CatalogDevice>())) ?? []
+        guard existing.isEmpty else { return }
+
+        let items: [(String, String, String, SystemDiscipline, String, String, Double, Double)] = [
+            ("AXIS-P3265", "Axis", "P3265-LVE Dome", .cctv, "Camera", "cam.dome", 649, 1.5),
+            ("AXIS-Q6315", "Axis", "Q6315-LE PTZ", .cctv, "Camera", "cam.ptz", 2499, 2.0),
+            ("HAN-DWC", "Hanwha", "XNV-8081Z", .cctv, "Camera", "cam.dome", 589, 1.5),
+            ("AVIG-NVR16", "Avigilon", "16-ch NVR", .cctv, "Recording", "cam.nvr", 3200, 4.0),
+            ("GEN-MR52", "Genetec", "Synergis Cloud Link", .access, "Controller", "acs.controller", 1895, 3.0),
+            ("HID-RP40", "HID", "RP40 Reader", .access, "Reader", "acs.reader", 285, 0.75),
+            ("HES-4500", "HES", "4500 Strike", .access, "Locking", "acs.lock", 210, 1.0),
+            ("DSC-HS2128", "DSC", "PowerSeries Pro", .ids, "Panel", "ids.panel", 420, 4.0),
+            ("BOSCH-ISC", "Bosch", "ISC-BDL2 PIR", .ids, "Sensor", "ids.pir", 68, 0.5),
+            ("GE-1125", "GE", "1125 Door Contact", .ids, "Sensor", "ids.door_contact", 12, 0.35),
+            ("CISCO-C9200", "Cisco", "C9200-24P PoE", .infrastructure, "Network", "infra.poe", 2100, 2.0),
+            ("APC-1500", "APC", "Smart-UPS 1500", .infrastructure, "Power", "infra.ups", 650, 1.0),
+            ("BIAMP-TESIRA", "Biamp", "TesiraFORTE", .av, "DSP", "av.dsp", 2800, 3.0),
+            ("JBL-CONTROL", "JBL", "Control 26CT", .av, "Speaker", "av.speaker", 145, 0.5),
+        ]
+
+        for item in items {
+            context.insert(CatalogDevice(
+                sku: item.0,
+                manufacturer: item.1,
+                modelName: item.2,
+                discipline: item.3,
+                category: item.4,
+                symbolID: item.5,
+                unitCost: item.6,
+                laborHours: item.7
+            ))
+        }
+        try? context.save()
+    }
+
+    static func makeSampleProject(context: ModelContext) -> DesignProject {
+        let project = DesignProject(
+            name: "HQ Campus Security Upgrade",
+            clientName: "North Valley Systems",
+            siteAddress: "1200 Innovation Dr",
+            scaleFeetPerUnit: 0.5
+        )
+        project.status = .design
+
+        let floor = DesignSheet(title: "Level 1 — Floor Plan", sheetType: .floorPlan)
+        floor.sortOrder = 0
+        let coverage = DesignSheet(title: "Level 1 — Camera Coverage", sheetType: .coverage)
+        coverage.sortOrder = 1
+        let schem = DesignSheet(title: "ACS Riser", sheetType: .riser)
+        schem.sortOrder = 2
+
+        for (i, d) in SystemDiscipline.allCases.enumerated() {
+            floor.layers.append(DesignLayer(name: d.rawValue, discipline: d, sortOrder: i))
+        }
+
+        let devices: [(String, String, String, SystemDiscipline, Double, Double, Double, Double)] = [
+            ("cam.dome", "Lobby Dome", "CAM-01", .cctv, 420, 360, 649, 1.5),
+            ("cam.bullet", "Parking Bullet", "CAM-02", .cctv, 180, 520, 520, 1.5),
+            ("cam.ptz", "Yard PTZ", "CAM-03", .cctv, 700, 200, 2499, 2.0),
+            ("acs.reader", "Main Entry Reader", "RDR-01", .access, 380, 400, 285, 0.75),
+            ("acs.lock", "Main Strike", "LCK-01", .access, 400, 400, 210, 1.0),
+            ("acs.controller", "ACS Panel", "ACS-01", .access, 900, 120, 1895, 3.0),
+            ("ids.pir", "Hall PIR", "PIR-01", .ids, 520, 300, 68, 0.5),
+            ("ids.door_contact", "Dock Contact", "DC-01", .ids, 240, 480, 12, 0.35),
+            ("ids.panel", "IDS Panel", "IDS-01", .ids, 920, 160, 420, 4.0),
+            ("infra.poe", "IDF PoE Switch", "SW-01", .infrastructure, 880, 140, 2100, 2.0),
+        ]
+
+        for d in devices {
+            let placed = PlacedDevice(symbolID: d.0, label: d.1, tag: d.2, discipline: d.3, x: d.4, y: d.5)
+            placed.unitCost = d.6
+            placed.laborHours = d.7
+            floor.devices.append(placed)
+        }
+
+        let z1 = CoverageZone(kind: .cameraFOV, originX: 420, originY: 360, headingDegrees: 225, fovDegrees: 100, rangeFeet: 45)
+        z1.deviceID = floor.devices.first?.id
+        floor.coverageZones.append(z1)
+        floor.coverageZones.append(CoverageZone(kind: .cameraFOV, originX: 180, originY: 520, headingDegrees: 45, fovDegrees: 70, rangeFeet: 60))
+        floor.coverageZones.append(CoverageZone(kind: .cameraFOV, originX: 700, originY: 200, headingDegrees: 180, fovDegrees: 60, rangeFeet: 120))
+
+        floor.markups.append(MarkupAnnotation(kind: .cloud, text: "Verify mounting height", x: 500, y: 280))
+        floor.markups.append(MarkupAnnotation(kind: .callout, text: "PoE budget OK", x: 860, y: 100))
+
+        project.sheets = [floor, coverage, schem]
+        project.documents = [
+            ProjectDocument(title: "Architectural Floor Plan", kind: .floorPlanPDF, fileName: "L1_Arch.pdf"),
+            ProjectDocument(title: "Existing ACS Visio", kind: .visio, fileName: "ACS_Existing.vsdx"),
+            ProjectDocument(title: "Site Survey Photos", kind: .photo, fileName: "Survey_Album"),
+        ]
+
+        for d in floor.devices {
+            project.estimateLines.append(DesignEstimateLine(
+                descriptionText: "\(d.label) (\(d.tag))",
+                quantity: 1,
+                unitCost: d.unitCost,
+                laborHours: d.laborHours
+            ))
+        }
+
+        context.insert(project)
+        try? context.save()
+        return project
+    }
+}
+
+
+// ===== FILE: App/DesignWorkspace.swift =====
+
+import Foundation
+import SwiftUI
+import Combine
+import UniformTypeIdentifiers
+
+/// Shared workspace state for the iPad drawing surface.
+@MainActor
+final class DesignWorkspace: ObservableObject {
+    @Published var selectedTool: DesignTool = .select
+    @Published var selectedSymbolID: String?
+    @Published var selectedDiscipline: SystemDiscipline? = nil
+    @Published var selectedDeviceID: UUID?
+    @Published var canvasZoom: CGFloat = 1.0
+    @Published var canvasOffset: CGSize = .zero
+    @Published var showGrid = true
+    @Published var showCoverage = true
+    @Published var showLayers = true
+    @Published var showLibrary = true
+    @Published var activeMode: WorkspaceMode = .draw
+    @Published var lastImportMessage: String?
+    @Published var lastExportMessage: String?
+    @Published var isImporting = false
+    @Published var isExporting = false
+
+    enum WorkspaceMode: String, CaseIterable, Identifiable {
+        case draw = "Draw"
+        case survey = "Survey"
+        case coverage = "Coverage"
+        case schematic = "Schematic"
+        case markup = "Markup"
+        case estimate = "Estimate"
+        case documents = "Documents"
+
+        var id: String { rawValue }
+
+        var systemImage: String {
+            switch self {
+            case .draw: return "pencil.and.ruler"
+            case .survey: return "camera.viewfinder"
+            case .coverage: return "cone"
+            case .schematic: return "point.3.connected.trianglepath.dotted"
+            case .markup: return "pencil.tip.crop.circle"
+            case .estimate: return "dollarsign.circle"
+            case .documents: return "doc.on.doc"
+            }
+        }
+
+        /// Maps to the industry-tool inspirations surfaced in the UI.
+        var inspiredBy: String {
+            switch self {
+            case .draw: return "System Surveyor · Axis Site Designer · magicplan"
+            case .survey: return "System Surveyor · magicplan · SiteOwl"
+            case .coverage: return "JVSG · Axis Site Designer · IPVM"
+            case .schematic: return "Vectorworks ConnectCAD · XTEN-AV · D-Tools"
+            case .markup: return "Bluebeam · SiteOwl"
+            case .estimate: return "ConEst · Jetbuilt · D-Tools · Specifi"
+            case .documents: return "Simply Wise · SiteOwl · Bluebeam"
+            }
+        }
+    }
+}
+
+enum DesignTool: String, CaseIterable, Identifiable {
+    case select
+    case pan
+    case place
+    case measure
+    case wall
+    case coverage
+    case markup
+    case connect
+    case erase
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .select: return "Select"
+        case .pan: return "Pan"
+        case .place: return "Place"
+        case .measure: return "Measure"
+        case .wall: return "Wall"
+        case .coverage: return "Coverage"
+        case .markup: return "Markup"
+        case .connect: return "Connect"
+        case .erase: return "Erase"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .select: return "arrow.up.left.and.arrow.down.right"
+        case .pan: return "hand.draw"
+        case .place: return "plus.viewfinder"
+        case .measure: return "ruler"
+        case .wall: return "rectangle.split.2x1"
+        case .coverage: return "cone"
+        case .markup: return "pencil.tip"
+        case .connect: return "line.diagonal"
+        case .erase: return "eraser"
+        }
+    }
+}
+
+/// Bridges the 14 reference products into SEP Design feature modules.
+enum IndustryBridge {
+    struct Capability: Identifiable {
+        let id: String
+        let product: String
+        let sepFeature: String
+        let mode: DesignWorkspace.WorkspaceMode
+    }
+
+    static let capabilities: [Capability] = [
+        .init(id: "1", product: "System Surveyor", sepFeature: "Site survey walkthrough, floor plans, device drops", mode: .survey),
+        .init(id: "2", product: "D-Tools", sepFeature: "Design documentation + BOM from placed devices", mode: .estimate),
+        .init(id: "3", product: "SiteOwl", sepFeature: "As-built photos, project document vault", mode: .documents),
+        .init(id: "4", product: "JVSG", sepFeature: "Camera FOV cones & pixel-density planning", mode: .coverage),
+        .init(id: "5", product: "IPVM", sepFeature: "Camera/spec catalog intelligence", mode: .estimate),
+        .init(id: "6", product: "XTEN-AV", sepFeature: "AV signal-flow & topology sheets", mode: .schematic),
+        .init(id: "7", product: "Jetbuilt", sepFeature: "Proposal-ready pricing from drawings", mode: .estimate),
+        .init(id: "8", product: "Axis Site Designer", sepFeature: "Camera placement & coverage design", mode: .coverage),
+        .init(id: "9", product: "Vectorworks ConnectCAD", sepFeature: "Schematic ports, risers, cable schedules", mode: .schematic),
+        .init(id: "10", product: "Specifi", sepFeature: "Manufacturer product specification library", mode: .estimate),
+        .init(id: "11", product: "ConEst", sepFeature: "Low-voltage takeoff & labor estimating", mode: .estimate),
+        .init(id: "12", product: "magicplan", sepFeature: "Quick floor-plan sketch & room measure", mode: .survey),
+        .init(id: "13", product: "Bluebeam", sepFeature: "PDF markup, clouds, stamps, collaboration", mode: .markup),
+        .init(id: "14", product: "Simply Wise", sepFeature: "Document filing & searchable project records", mode: .documents),
+    ]
+}
+
+
+// ===== FILE: Models/DesignModels.swift =====
+
+import Foundation
+import SwiftData
+import SwiftUI
+import CoreGraphics
+
+// MARK: - Project
+
+@Model
+final class DesignProject {
+    var id: UUID
+    var name: String
+    var clientName: String
+    var siteAddress: String
+    var createdAt: Date
+    var updatedAt: Date
+    var statusRaw: String
+    var notes: String
+    var scaleFeetPerUnit: Double
+
+    @Relationship(deleteRule: .cascade, inverse: \DesignSheet.project)
+    var sheets: [DesignSheet]
+
+    @Relationship(deleteRule: .cascade, inverse: \ProjectDocument.project)
+    var documents: [ProjectDocument]
+
+    @Relationship(deleteRule: .cascade, inverse: \DesignEstimateLine.project)
+    var estimateLines: [DesignEstimateLine]
+
+    init(
+        name: String,
+        clientName: String = "",
+        siteAddress: String = "",
+        scaleFeetPerUnit: Double = 0.5
+    ) {
+        self.id = UUID()
+        self.name = name
+        self.clientName = clientName
+        self.siteAddress = siteAddress
+        self.createdAt = Date()
+        self.updatedAt = Date()
+        self.statusRaw = ProjectStatus.survey.rawValue
+        self.notes = ""
+        self.scaleFeetPerUnit = scaleFeetPerUnit
+        self.sheets = []
+        self.documents = []
+        self.estimateLines = []
+    }
+
+    var status: ProjectStatus {
+        get { ProjectStatus(rawValue: statusRaw) ?? .survey }
+        set { statusRaw = newValue.rawValue }
+    }
+}
+
+enum ProjectStatus: String, Codable, CaseIterable {
+    case survey = "Site Survey"
+    case design = "Design"
+    case estimate = "Estimate"
+    case proposal = "Proposal"
+    case asBuilt = "As-Built"
+    case complete = "Complete"
+}
+
+// MARK: - Sheet (floor plan / schematic page)
+
+@Model
+final class DesignSheet {
+    var id: UUID
+    var title: String
+    var sheetTypeRaw: String
+    var width: Double
+    var height: Double
+    var backgroundPDFBookmark: String?
+    var sortOrder: Int
+    var project: DesignProject?
+
+    @Relationship(deleteRule: .cascade, inverse: \DesignLayer.sheet)
+    var layers: [DesignLayer]
+
+    @Relationship(deleteRule: .cascade, inverse: \PlacedDevice.sheet)
+    var devices: [PlacedDevice]
+
+    @Relationship(deleteRule: .cascade, inverse: \CoverageZone.sheet)
+    var coverageZones: [CoverageZone]
+
+    @Relationship(deleteRule: .cascade, inverse: \SchematicNode.sheet)
+    var schematicNodes: [SchematicNode]
+
+    @Relationship(deleteRule: .cascade, inverse: \MarkupAnnotation.sheet)
+    var markups: [MarkupAnnotation]
+
+    init(title: String, sheetType: SheetType = .floorPlan, width: Double = 2400, height: Double = 1800) {
+        self.id = UUID()
+        self.title = title
+        self.sheetTypeRaw = sheetType.rawValue
+        self.width = width
+        self.height = height
+        self.sortOrder = 0
+        self.layers = []
+        self.devices = []
+        self.coverageZones = []
+        self.schematicNodes = []
+        self.markups = []
+    }
+
+    var sheetType: SheetType {
+        get { SheetType(rawValue: sheetTypeRaw) ?? .floorPlan }
+        set { sheetTypeRaw = newValue.rawValue }
+    }
+}
+
+enum SheetType: String, Codable, CaseIterable {
+    case floorPlan = "Floor Plan"
+    case sitePlan = "Site Plan"
+    case schematic = "Schematic"
+    case riser = "Riser Diagram"
+    case coverage = "Coverage Map"
+    case detail = "Detail"
+}
+
+// MARK: - Layers
+
+@Model
+final class DesignLayer {
+    var id: UUID
+    var name: String
+    var disciplineRaw: String
+    var isVisible: Bool
+    var isLocked: Bool
+    var opacity: Double
+    var sortOrder: Int
+    var sheet: DesignSheet?
+
+    init(name: String, discipline: SystemDiscipline, sortOrder: Int = 0) {
+        self.id = UUID()
+        self.name = name
+        self.disciplineRaw = discipline.rawValue
+        self.isVisible = true
+        self.isLocked = false
+        self.opacity = 1.0
+        self.sortOrder = sortOrder
+    }
+
+    var discipline: SystemDiscipline {
+        get { SystemDiscipline(rawValue: disciplineRaw) ?? .infrastructure }
+        set { disciplineRaw = newValue.rawValue }
+    }
+}
+
+// MARK: - Placed device (Visio/CAD symbol instance)
+
+@Model
+final class PlacedDevice {
+    var id: UUID
+    var symbolID: String
+    var label: String
+    var tag: String
+    var disciplineRaw: String
+    var x: Double
+    var y: Double
+    var rotation: Double
+    var scale: Double
+    var catalogSKU: String?
+    var manufacturer: String?
+    var modelName: String?
+    var unitCost: Double
+    var laborHours: Double
+    var notes: String
+    var layerID: UUID?
+    var sheet: DesignSheet?
+
+    init(
+        symbolID: String,
+        label: String,
+        tag: String,
+        discipline: SystemDiscipline,
+        x: Double,
+        y: Double
+    ) {
+        self.id = UUID()
+        self.symbolID = symbolID
+        self.label = label
+        self.tag = tag
+        self.disciplineRaw = discipline.rawValue
+        self.x = x
+        self.y = y
+        self.rotation = 0
+        self.scale = 1
+        self.unitCost = 0
+        self.laborHours = 0
+        self.notes = ""
+    }
+
+    var discipline: SystemDiscipline {
+        get { SystemDiscipline(rawValue: disciplineRaw) ?? .infrastructure }
+        set { disciplineRaw = newValue.rawValue }
+    }
+
+    var position: CGPoint {
+        get { CGPoint(x: x, y: y) }
+        set { x = newValue.x; y = newValue.y }
+    }
+}
+
+// MARK: - Camera / sensor coverage (JVSG + Axis Site Designer)
+
+@Model
+final class CoverageZone {
+    var id: UUID
+    var deviceID: UUID?
+    var kindRaw: String
+    var originX: Double
+    var originY: Double
+    var headingDegrees: Double
+    var fovDegrees: Double
+    var rangeFeet: Double
+    var tiltDegrees: Double
+    var isDetectable: Bool
+    var sheet: DesignSheet?
+
+    init(
+        kind: CoverageKind = .cameraFOV,
+        originX: Double,
+        originY: Double,
+        headingDegrees: Double = 0,
+        fovDegrees: Double = 90,
+        rangeFeet: Double = 40
+    ) {
+        self.id = UUID()
+        self.kindRaw = kind.rawValue
+        self.originX = originX
+        self.originY = originY
+        self.headingDegrees = headingDegrees
+        self.fovDegrees = fovDegrees
+        self.rangeFeet = rangeFeet
+        self.tiltDegrees = 0
+        self.isDetectable = true
+    }
+
+    var kind: CoverageKind {
+        get { CoverageKind(rawValue: kindRaw) ?? .cameraFOV }
+        set { kindRaw = newValue.rawValue }
+    }
+}
+
+enum CoverageKind: String, Codable, CaseIterable {
+    case cameraFOV = "Camera FOV"
+    case pir = "PIR Motion"
+    case microwave = "Microwave"
+    case cardReader = "Reader Range"
+    case wifiAP = "Wireless AP"
+    case speaker = "Audio Coverage"
+}
+
+// MARK: - Schematic / ConnectCAD-style nodes
+
+@Model
+final class SchematicNode {
+    var id: UUID
+    var title: String
+    var symbolID: String
+    var x: Double
+    var y: Double
+    var portsJSON: String
+    var connectedToJSON: String
+    var sheet: DesignSheet?
+
+    init(title: String, symbolID: String, x: Double, y: Double) {
+        self.id = UUID()
+        self.title = title
+        self.symbolID = symbolID
+        self.x = x
+        self.y = y
+        self.portsJSON = "[]"
+        self.connectedToJSON = "[]"
+    }
+}
+
+// MARK: - Bluebeam-style markup
+
+@Model
+final class MarkupAnnotation {
+    var id: UUID
+    var kindRaw: String
+    var text: String
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+    var strokeHex: String
+    var author: String
+    var createdAt: Date
+    var sheet: DesignSheet?
+
+    init(kind: MarkupKind, text: String, x: Double, y: Double) {
+        self.id = UUID()
+        self.kindRaw = kind.rawValue
+        self.text = text
+        self.x = x
+        self.y = y
+        self.width = 160
+        self.height = 48
+        self.strokeHex = "#C5A059"
+        self.author = "Designer"
+        self.createdAt = Date()
+    }
+
+    var kind: MarkupKind {
+        get { MarkupKind(rawValue: kindRaw) ?? .cloud }
+        set { kindRaw = newValue.rawValue }
+    }
+}
+
+enum MarkupKind: String, Codable, CaseIterable {
+    case cloud = "Cloud"
+    case callout = "Callout"
+    case highlight = "Highlight"
+    case dimension = "Dimension"
+    case stamp = "Stamp"
+    case pen = "Pen"
+    case arrow = "Arrow"
+}
+
+// MARK: - Documents (Simply Wise + SiteOwl)
+
+@Model
+final class ProjectDocument {
+    var id: UUID
+    var title: String
+    var kindRaw: String
+    var fileName: String
+    var importedAt: Date
+    var notes: String
+    var project: DesignProject?
+
+    init(title: String, kind: DocumentKind, fileName: String) {
+        self.id = UUID()
+        self.title = title
+        self.kindRaw = kind.rawValue
+        self.fileName = fileName
+        self.importedAt = Date()
+        self.notes = ""
+    }
+
+    var kind: DocumentKind {
+        get { DocumentKind(rawValue: kindRaw) ?? .other }
+        set { kindRaw = newValue.rawValue }
+    }
+}
+
+enum DocumentKind: String, Codable, CaseIterable {
+    case floorPlanPDF = "Floor Plan PDF"
+    case visio = "Visio"
+    case autocad = "AutoCAD"
+    case photo = "Site Photo"
+    case asBuilt = "As-Built"
+    case proposal = "Proposal"
+    case submittal = "Submittal"
+    case other = "Other"
+}
+
+// MARK: - Catalog (Specifi + IPVM + D-Tools)
+
+@Model
+final class CatalogDevice {
+    var id: UUID
+    var sku: String
+    var manufacturer: String
+    var modelName: String
+    var disciplineRaw: String
+    var category: String
+    var symbolID: String
+    var unitCost: Double
+    var laborHours: Double
+    var specsJSON: String
+    var datasheetURL: String?
+
+    init(
+        sku: String,
+        manufacturer: String,
+        modelName: String,
+        discipline: SystemDiscipline,
+        category: String,
+        symbolID: String,
+        unitCost: Double,
+        laborHours: Double = 1.0
+    ) {
+        self.id = UUID()
+        self.sku = sku
+        self.manufacturer = manufacturer
+        self.modelName = modelName
+        self.disciplineRaw = discipline.rawValue
+        self.category = category
+        self.symbolID = symbolID
+        self.unitCost = unitCost
+        self.laborHours = laborHours
+        self.specsJSON = "{}"
+    }
+
+    var discipline: SystemDiscipline {
+        get { SystemDiscipline(rawValue: disciplineRaw) ?? .infrastructure }
+        set { disciplineRaw = newValue.rawValue }
+    }
+}
+
+// MARK: - Estimate lines (ConEst + Jetbuilt + D-Tools)
+
+@Model
+final class DesignEstimateLine {
+    var id: UUID
+    var descriptionText: String
+    var quantity: Double
+    var unitCost: Double
+    var laborHours: Double
+    var laborRate: Double
+    var category: String
+    var sourceDeviceID: UUID?
+    var project: DesignProject?
+
+    init(descriptionText: String, quantity: Double, unitCost: Double, laborHours: Double, laborRate: Double = 95) {
+        self.id = UUID()
+        self.descriptionText = descriptionText
+        self.quantity = quantity
+        self.unitCost = unitCost
+        self.laborHours = laborHours
+        self.laborRate = laborRate
+        self.category = "Equipment"
+    }
+
+    var materialTotal: Double { quantity * unitCost }
+    var laborTotal: Double { quantity * laborHours * laborRate }
+    var extended: Double { materialTotal + laborTotal }
+}
+
+
+// ===== FILE: SEPDesignApp.swift =====
+
+import SwiftUI
+import SwiftData
+
+@main
+struct SEPDesignApp: App {
+    let container: ModelContainer = {
+        let schema = Schema([
+            DesignProject.self,
+            DesignSheet.self,
+            PlacedDevice.self,
+            DesignLayer.self,
+            CatalogDevice.self,
+            CoverageZone.self,
+            SchematicNode.self,
+            MarkupAnnotation.self,
+            ProjectDocument.self,
+            DesignEstimateLine.self
+        ])
+        do {
+            return try ModelContainer(for: schema)
+        } catch {
+            fatalError("SEP Design database failed: \(error)")
+        }
+    }()
+
+    var body: some Scene {
+        WindowGroup {
+            DesignRootView()
+                .environmentObject(DesignWorkspace())
+        }
+        .modelContainer(container)
+        .commands {
+            DesignCommands()
+        }
+    }
+}
+
+struct DesignCommands: Commands {
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Design Project") {
+                NotificationCenter.default.post(name: .sepNewProject, object: nil)
+            }
+            .keyboardShortcut("n", modifiers: [.command])
+        }
+        CommandMenu("Import") {
+            Button("Import Visio (.vsdx)…") {
+                NotificationCenter.default.post(name: .sepImportVisio, object: nil)
+            }
+            Button("Import AutoCAD (.dxf/.dwg)…") {
+                NotificationCenter.default.post(name: .sepImportCAD, object: nil)
+            }
+            Button("Import PDF…") {
+                NotificationCenter.default.post(name: .sepImportPDF, object: nil)
+            }
+        }
+        CommandMenu("Export") {
+            Button("Export PDF…") {
+                NotificationCenter.default.post(name: .sepExportPDF, object: nil)
+            }
+            Button("Export DXF…") {
+                NotificationCenter.default.post(name: .sepExportDXF, object: nil)
+            }
+            Button("Export Visio XML…") {
+                NotificationCenter.default.post(name: .sepExportVisio, object: nil)
+            }
+        }
+    }
+}
+
+extension Notification.Name {
+    static let sepNewProject = Notification.Name("sep.design.newProject")
+    static let sepImportVisio = Notification.Name("sep.design.importVisio")
+    static let sepImportCAD = Notification.Name("sep.design.importCAD")
+    static let sepImportPDF = Notification.Name("sep.design.importPDF")
+    static let sepExportPDF = Notification.Name("sep.design.exportPDF")
+    static let sepExportDXF = Notification.Name("sep.design.exportDXF")
+    static let sepExportVisio = Notification.Name("sep.design.exportVisio")
+}
+
+
+// ===== FILE: Services/ImportExportService.swift =====
+
+import Foundation
+import UniformTypeIdentifiers
+import PDFKit
+import SwiftUI
+
+// MARK: - UTTypes
+
+extension UTType {
+    static let vsdx = UTType(filenameExtension: "vsdx") ?? UTType(exportedAs: "com.microsoft.visio.drawing")
+    static let vdx = UTType(filenameExtension: "vdx") ?? UTType(exportedAs: "com.microsoft.visio.xml")
+    static let dxf = UTType(filenameExtension: "dxf") ?? UTType(exportedAs: "com.autodesk.dxf")
+    static let dwg = UTType(filenameExtension: "dwg") ?? UTType(exportedAs: "com.autodesk.dwg")
+    static let sepdesign = UTType(exportedAs: "com.nvssmd.sepdesign.project", conformingTo: .json)
+}
+
+// MARK: - Import
+
+enum DesignImportService {
+    enum ImportResult {
+        case floorPlanBackground(title: String, pageSize: CGSize, pageCount: Int)
+        case visioStencil(shapes: [ImportedShape])
+        case cadEntities(entities: [ImportedCADEntity])
+        case message(String)
+    }
+
+    struct ImportedShape: Identifiable {
+        let id = UUID()
+        let name: String
+        let symbolHint: String
+        let x: Double
+        let y: Double
+    }
+
+    struct ImportedCADEntity: Identifiable {
+        let id = UUID()
+        let layer: String
+        let entityType: String
+        let points: [CGPoint]
+    }
+
+    static var supportedTypes: [UTType] {
+        [.pdf, .vsdx, .vdx, .dxf, .dwg, .plainText, .xml, .data]
+    }
+
+    static func importFile(at url: URL) throws -> ImportResult {
+        let ext = url.pathExtension.lowercased()
+        switch ext {
+        case "pdf":
+            return try importPDF(url)
+        case "vsdx", "vdx", "vsd":
+            return try importVisio(url)
+        case "dxf":
+            return try importDXF(url)
+        case "dwg":
+            // DWG is proprietary; we accept the file, extract what we can, and guide users to DXF.
+            return .message("DWG “\(url.lastPathComponent)” imported as reference. For editable geometry, export DXF from AutoCAD / TrueView, then re-import.")
+        default:
+            throw ImportError.unsupported(ext)
+        }
+    }
+
+    private static func importPDF(_ url: URL) throws -> ImportResult {
+        guard let doc = PDFDocument(url: url) else {
+            throw ImportError.corrupt("PDF")
+        }
+        let page = doc.page(at: 0)
+        let bounds = page?.bounds(for: .mediaBox) ?? CGRect(x: 0, y: 0, width: 792, height: 612)
+        return .floorPlanBackground(
+            title: url.deletingPathExtension().lastPathComponent,
+            pageSize: bounds.size,
+            pageCount: doc.pageCount
+        )
+    }
+
+    private static func importVisio(_ url: URL) throws -> ImportResult {
+        // VSDX is a ZIP package of XML. We parse shape names when unzipped XML is readable;
+        // otherwise we register stencil placeholders for the designer.
+        let data = try Data(contentsOf: url)
+        var shapes: [ImportedShape] = []
+
+        if let xml = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) {
+            shapes = parseVisioShapeNames(from: xml)
+        }
+
+        if shapes.isEmpty {
+            // Stencil drop list derived from filename + common security masters
+            let base = url.deletingPathExtension().lastPathComponent
+            shapes = [
+                .init(name: "\(base) · Master 1", symbolHint: "cam.dome", x: 200, y: 200),
+                .init(name: "\(base) · Master 2", symbolHint: "acs.reader", x: 320, y: 200),
+                .init(name: "\(base) · Master 3", symbolHint: "ids.pir", x: 440, y: 200),
+            ]
+        }
+
+        return .visioStencil(shapes: shapes)
+    }
+
+    private static func parseVisioShapeNames(from xml: String) -> [ImportedShape] {
+        var results: [ImportedShape] = []
+        // Lightweight name scrape for VDX / Visio XML exports
+        let pattern = #"Name=['"]([^'"]+)['"]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let range = NSRange(xml.startIndex..<xml.endIndex, in: xml)
+        let matches = regex.matches(in: xml, range: range)
+        var index = 0
+        for match in matches.prefix(40) {
+            guard let r = Range(match.range(at: 1), in: xml) else { continue }
+            let name = String(xml[r])
+            if name.count < 2 || name.hasPrefix("Sheet") { continue }
+            let hint = SymbolLibrary.all.first {
+                name.localizedCaseInsensitiveContains($0.name)
+                    || name.localizedCaseInsensitiveContains($0.visioName)
+                    || name.localizedCaseInsensitiveContains($0.cadBlock)
+            }?.id ?? "cam.dome"
+            results.append(.init(name: name, symbolHint: hint, x: 120 + Double(index % 8) * 80, y: 120 + Double(index / 8) * 80))
+            index += 1
+        }
+        return results
+    }
+
+    private static func importDXF(_ url: URL) throws -> ImportResult {
+        let text = try String(contentsOf: url, encoding: .utf8)
+        var entities: [ImportedCADEntity] = []
+        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
+        var i = 0
+        var currentLayer = "0"
+        while i < lines.count - 1 {
+            let code = lines[i]
+            let value = lines[i + 1]
+            if code == "8" { currentLayer = value }
+            if code == "0" {
+                switch value {
+                case "LINE":
+                    var pts: [CGPoint] = []
+                    var x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0
+                    var j = i + 2
+                    while j < lines.count - 1 && lines[j] != "0" {
+                        let c = lines[j]
+                        let v = Double(lines[j + 1]) ?? 0
+                        switch c {
+                        case "10": x1 = v
+                        case "20": y1 = v
+                        case "11": x2 = v
+                        case "21": y2 = v
+                        default: break
+                        }
+                        j += 2
+                    }
+                    pts = [CGPoint(x: x1, y: -y1), CGPoint(x: x2, y: -y2)]
+                    entities.append(.init(layer: currentLayer, entityType: "LINE", points: pts))
+                case "CIRCLE":
+                    var cx = 0.0, cy = 0.0, r = 10.0
+                    var j = i + 2
+                    while j < lines.count - 1 && lines[j] != "0" {
+                        let c = lines[j]
+                        let v = Double(lines[j + 1]) ?? 0
+                        switch c {
+                        case "10": cx = v
+                        case "20": cy = v
+                        case "40": r = v
+                        default: break
+                        }
+                        j += 2
+                    }
+                    entities.append(.init(
+                        layer: currentLayer,
+                        entityType: "CIRCLE",
+                        points: [
+                            CGPoint(x: cx - r, y: -(cy - r)),
+                            CGPoint(x: cx + r, y: -(cy + r))
+                        ]
+                    ))
+                case "INSERT":
+                    var name = "BLOCK"
+                    var x = 0.0, y = 0.0
+                    var j = i + 2
+                    while j < lines.count - 1 && lines[j] != "0" {
+                        let c = lines[j]
+                        let v = lines[j + 1]
+                        switch c {
+                        case "2": name = v
+                        case "10": x = Double(v) ?? 0
+                        case "20": y = Double(v) ?? 0
+                        default: break
+                        }
+                        j += 2
+                    }
+                    entities.append(.init(layer: currentLayer, entityType: "INSERT:\(name)", points: [CGPoint(x: x, y: -y)]))
+                default:
+                    break
+                }
+            }
+            i += 2
+        }
+        return .cadEntities(entities: entities)
+    }
+
+    enum ImportError: LocalizedError {
+        case unsupported(String)
+        case corrupt(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .unsupported(let ext): return "Unsupported file type .\(ext)"
+            case .corrupt(let kind): return "Could not read \(kind) file"
+            }
+        }
+    }
+}
+
+// MARK: - Export
+
+enum DesignExportService {
+    enum ExportFormat: String, CaseIterable, Identifiable {
+        case pdf = "PDF"
+        case dxf = "AutoCAD DXF"
+        case visioXML = "Visio XML (VDX)"
+        case csvBOM = "BOM CSV"
+        case sepJSON = "SEP Design JSON"
+
+        var id: String { rawValue }
+
+        var utType: UTType {
+            switch self {
+            case .pdf: return .pdf
+            case .dxf: return .dxf
+            case .visioXML: return .xml
+            case .csvBOM: return .commaSeparatedText
+            case .sepJSON: return .json
+            }
+        }
+
+        var fileExtension: String {
+            switch self {
+            case .pdf: return "pdf"
+            case .dxf: return "dxf"
+            case .visioXML: return "vdx"
+            case .csvBOM: return "csv"
+            case .sepJSON: return "sepdesign.json"
+            }
+        }
+    }
+
+    static func exportPDF(project: DesignProject, sheet: DesignSheet) -> Data {
+        let pageRect = CGRect(x: 0, y: 0, width: 792, height: 612) // Letter landscape
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
+        return renderer.pdfData { ctx in
+            ctx.beginPage()
+            let title = "\(project.name) — \(sheet.title)" as NSString
+            title.draw(at: CGPoint(x: 36, y: 28), withAttributes: [
+                .font: UIFont.boldSystemFont(ofSize: 16),
+                .foregroundColor: UIColor(DesignTheme.brandNavy)
+            ])
+            let meta = "\(project.clientName) · \(project.siteAddress) · \(ISO8601DateFormatter().string(from: Date()))" as NSString
+            meta.draw(at: CGPoint(x: 36, y: 50), withAttributes: [
+                .font: UIFont.systemFont(ofSize: 10),
+                .foregroundColor: UIColor.gray
+            ])
+
+            // Title block
+            let block = CGRect(x: 520, y: 520, width: 240, height: 60)
+            UIColor(DesignTheme.brandTertiary).setFill()
+            UIBezierPath(roundedRect: block, cornerRadius: 4).fill()
+            ("SEP Design · NVSSMD" as NSString).draw(at: CGPoint(x: 528, y: 528), withAttributes: [
+                .font: UIFont.boldSystemFont(ofSize: 11)
+            ])
+            (sheet.sheetType.rawValue as NSString).draw(at: CGPoint(x: 528, y: 546), withAttributes: [
+                .font: UIFont.systemFont(ofSize: 10)
+            ])
+
+            // Devices
+            for device in sheet.devices {
+                let px = 36 + device.x * 0.25
+                let py = 80 + device.y * 0.25
+                let r = CGRect(x: px - 8, y: py - 8, width: 16, height: 16)
+                UIColor(device.discipline.color).setStroke()
+                UIBezierPath(ovalIn: r).stroke()
+                (device.tag as NSString).draw(at: CGPoint(x: px + 10, y: py - 6), withAttributes: [
+                    .font: UIFont.systemFont(ofSize: 8),
+                    .foregroundColor: UIColor.darkGray
+                ])
+            }
+
+            // Coverage wedges (simplified)
+            for zone in sheet.coverageZones {
+                let ox = 36 + zone.originX * 0.25
+                let oy = 80 + zone.originY * 0.25
+                let radius = zone.rangeFeet * 2
+                let start = CGFloat((zone.headingDegrees - zone.fovDegrees / 2) * .pi / 180)
+                let end = CGFloat((zone.headingDegrees + zone.fovDegrees / 2) * .pi / 180)
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: ox, y: oy))
+                path.addArc(withCenter: CGPoint(x: ox, y: oy), radius: radius, startAngle: start, endAngle: end, clockwise: true)
+                path.close()
+                UIColor(DesignTheme.layerCCTV).withAlphaComponent(0.15).setFill()
+                path.fill()
+            }
+        }
+    }
+
+    static func exportDXF(sheet: DesignSheet) -> String {
+        var out = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nENDSEC\n"
+        out += "0\nSECTION\n2\nENTITIES\n"
+        for device in sheet.devices {
+            let block = SymbolLibrary.symbol(id: device.symbolID)?.cadBlock ?? "DEVICE"
+            out += "0\nINSERT\n8\n\(device.discipline.rawValue)\n2\n\(block)\n10\n\(device.x)\n20\n\(-device.y)\n30\n0.0\n50\n\(device.rotation)\n"
+            out += "0\nTEXT\n8\nANNOTATION\n10\n\(device.x + 12)\n20\n\(-device.y)\n40\n8\n1\n\(device.tag)\n"
+        }
+        for zone in sheet.coverageZones {
+            out += "0\nARC\n8\nCOVERAGE\n10\n\(zone.originX)\n20\n\(-zone.originY)\n40\n\(zone.rangeFeet * 12)\n50\n\(zone.headingDegrees - zone.fovDegrees / 2)\n51\n\(zone.headingDegrees + zone.fovDegrees / 2)\n"
+        }
+        out += "0\nENDSEC\n0\nEOF\n"
+        return out
+    }
+
+    static func exportVisioXML(project: DesignProject, sheet: DesignSheet) -> String {
+        var shapes = ""
+        for (idx, device) in sheet.devices.enumerated() {
+            let master = SymbolLibrary.symbol(id: device.symbolID)?.visioName ?? device.label
+            shapes += """
+            <Shape ID="\(idx + 1)" Name="\(xmlEscape(device.tag))" Type="Shape" Master="\(xmlEscape(master))">
+              <XForm>
+                <PinX>\(device.x)</PinX>
+                <PinY>\(device.y)</PinY>
+                <Width>36</Width>
+                <Height>36</Height>
+                <Angle>\(device.rotation * .pi / 180)</Angle>
+              </XForm>
+              <Text>\(xmlEscape(device.label))</Text>
+            </Shape>
+            """
+        }
+        return """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <VisioDocument xmlns="http://schemas.microsoft.com/office/visio/2012/main">
+          <DocumentProperties>
+            <Title>\(xmlEscape(project.name))</Title>
+            <Creator>SEP Design · NVSSMD</Creator>
+            <Company>\(xmlEscape(project.clientName))</Company>
+          </DocumentProperties>
+          <Pages>
+            <Page ID="0" Name="\(xmlEscape(sheet.title))">
+              <Shapes>
+                \(shapes)
+              </Shapes>
+            </Page>
+          </Pages>
+        </VisioDocument>
+        """
+    }
+
+    static func exportBOMCSV(project: DesignProject) -> String {
+        var csv = "SKU/Tag,Description,Qty,Unit Cost,Labor Hours,Labor Rate,Material,Labor,Extended,Category\n"
+        for line in project.estimateLines {
+            csv += "\"\(line.sourceDeviceID?.uuidString ?? "")\",\"\(line.descriptionText)\",\(line.quantity),\(line.unitCost),\(line.laborHours),\(line.laborRate),\(line.materialTotal),\(line.laborTotal),\(line.extended),\"\(line.category)\"\n"
+        }
+        // Also roll up placed devices if estimate lines empty
+        if project.estimateLines.isEmpty {
+            for sheet in project.sheets {
+                for d in sheet.devices {
+                    let mat = d.unitCost
+                    let lab = d.laborHours * 95
+                    csv += "\"\(d.tag)\",\"\(d.label)\",1,\(d.unitCost),\(d.laborHours),95,\(mat),\(lab),\(mat + lab),\"\(d.discipline.rawValue)\"\n"
+                }
+            }
+        }
+        return csv
+    }
+
+    private static func xmlEscape(_ s: String) -> String {
+        s.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+    }
+}
+
+
+// ===== FILE: Symbols/SymbolLibrary.swift =====
+
+import SwiftUI
+import Foundation
+
+/// Industry-standard Visio / CAD-style security symbol library.
+/// Inspired by System Surveyor, Axis Site Designer, ConnectCAD, and Visio stencils.
+enum SymbolLibrary {
+    static let all: [DesignSymbol] = ids + access + cctv + infrastructure + av + annotation + cadPrimitives
+
+    static func symbols(for discipline: SystemDiscipline?) -> [DesignSymbol] {
+        guard let discipline else { return all }
+        return all.filter { $0.discipline == discipline || $0.discipline == nil }
+    }
+
+    static func symbol(id: String) -> DesignSymbol? {
+        all.first { $0.id == id }
+    }
+
+    // MARK: IDS (intrusion)
+
+    static let ids: [DesignSymbol] = [
+        .init(id: "ids.panel", name: "Alarm Panel", discipline: .ids, category: "Control", visioName: "Intrusion Panel", cadBlock: "IDS_PANEL"),
+        .init(id: "ids.keypad", name: "Keypad", discipline: .ids, category: "Control", visioName: "Keypad", cadBlock: "IDS_KEYPAD"),
+        .init(id: "ids.door_contact", name: "Door Contact", discipline: .ids, category: "Sensor", visioName: "Door Contact", cadBlock: "IDS_DC"),
+        .init(id: "ids.window_contact", name: "Window Contact", discipline: .ids, category: "Sensor", visioName: "Window Contact", cadBlock: "IDS_WC"),
+        .init(id: "ids.pir", name: "PIR Motion", discipline: .ids, category: "Sensor", visioName: "PIR Detector", cadBlock: "IDS_PIR"),
+        .init(id: "ids.glassbreak", name: "Glass Break", discipline: .ids, category: "Sensor", visioName: "Glass Break", cadBlock: "IDS_GB"),
+        .init(id: "ids.smoke", name: "Smoke Detector", discipline: .fire, category: "Life Safety", visioName: "Smoke Detector", cadBlock: "FA_SMOKE"),
+        .init(id: "ids.siren", name: "Siren / Strobe", discipline: .ids, category: "Notification", visioName: "Siren", cadBlock: "IDS_SIREN"),
+        .init(id: "ids.duress", name: "Duress Button", discipline: .ids, category: "Sensor", visioName: "Hold-Up Button", cadBlock: "IDS_DURESS"),
+    ]
+
+    // MARK: Access control
+
+    static let access: [DesignSymbol] = [
+        .init(id: "acs.controller", name: "Door Controller", discipline: .access, category: "Control", visioName: "Access Controller", cadBlock: "ACS_CTRL"),
+        .init(id: "acs.reader", name: "Card Reader", discipline: .access, category: "Reader", visioName: "Card Reader", cadBlock: "ACS_RDR"),
+        .init(id: "acs.rex", name: "Request to Exit", discipline: .access, category: "Sensor", visioName: "REX", cadBlock: "ACS_REX"),
+        .init(id: "acs.lock", name: "Electric Lock", discipline: .access, category: "Locking", visioName: "Electric Strike", cadBlock: "ACS_LOCK"),
+        .init(id: "acs.maglock", name: "Maglock", discipline: .access, category: "Locking", visioName: "Maglock", cadBlock: "ACS_MAG"),
+        .init(id: "acs.rex_button", name: "Exit Button", discipline: .access, category: "Reader", visioName: "Exit Button", cadBlock: "ACS_BTN"),
+        .init(id: "acs.intercom", name: "Door Station", discipline: .access, category: "Intercom", visioName: "Door Station", cadBlock: "ACS_DOORST"),
+        .init(id: "acs.turnstile", name: "Turnstile", discipline: .access, category: "Barrier", visioName: "Turnstile", cadBlock: "ACS_TURN"),
+    ]
+
+    // MARK: CCTV / video (JVSG, Axis, IPVM)
+
+    static let cctv: [DesignSymbol] = [
+        .init(id: "cam.dome", name: "Dome Camera", discipline: .cctv, category: "Camera", visioName: "Dome Camera", cadBlock: "CAM_DOME"),
+        .init(id: "cam.bullet", name: "Bullet Camera", discipline: .cctv, category: "Camera", visioName: "Bullet Camera", cadBlock: "CAM_BULLET"),
+        .init(id: "cam.ptz", name: "PTZ Camera", discipline: .cctv, category: "Camera", visioName: "PTZ Camera", cadBlock: "CAM_PTZ"),
+        .init(id: "cam.fisheye", name: "Fisheye Camera", discipline: .cctv, category: "Camera", visioName: "Fisheye", cadBlock: "CAM_FISH"),
+        .init(id: "cam.multi", name: "Multi-Sensor", discipline: .cctv, category: "Camera", visioName: "Multi-Sensor Cam", cadBlock: "CAM_MULTI"),
+        .init(id: "cam.nvr", name: "NVR / VMS", discipline: .cctv, category: "Recording", visioName: "NVR", cadBlock: "CAM_NVR"),
+        .init(id: "cam.encoder", name: "Encoder", discipline: .cctv, category: "Recording", visioName: "Video Encoder", cadBlock: "CAM_ENC"),
+        .init(id: "cam.monitor", name: "Monitor Wall", discipline: .cctv, category: "Display", visioName: "Monitor", cadBlock: "CAM_MON"),
+    ]
+
+    // MARK: Infrastructure
+
+    static let infrastructure: [DesignSymbol] = [
+        .init(id: "infra.switch", name: "Network Switch", discipline: .infrastructure, category: "Network", visioName: "Ethernet Switch", cadBlock: "NET_SW"),
+        .init(id: "infra.poe", name: "PoE Switch", discipline: .infrastructure, category: "Network", visioName: "PoE Switch", cadBlock: "NET_POE"),
+        .init(id: "infra.router", name: "Router / Firewall", discipline: .infrastructure, category: "Network", visioName: "Router", cadBlock: "NET_RTR"),
+        .init(id: "infra.ap", name: "Wireless AP", discipline: .infrastructure, category: "Network", visioName: "Wireless AP", cadBlock: "NET_AP"),
+        .init(id: "infra.ups", name: "UPS", discipline: .infrastructure, category: "Power", visioName: "UPS", cadBlock: "PWR_UPS"),
+        .init(id: "infra.rack", name: "Equipment Rack", discipline: .infrastructure, category: "Pathway", visioName: "Rack", cadBlock: "RACK"),
+        .init(id: "infra.idf", name: "IDF / MDF", discipline: .infrastructure, category: "Pathway", visioName: "Telecom Closet", cadBlock: "IDF"),
+        .init(id: "infra.conduit", name: "Conduit Run", discipline: .infrastructure, category: "Pathway", visioName: "Conduit", cadBlock: "COND"),
+        .init(id: "infra.jbox", name: "Junction Box", discipline: .infrastructure, category: "Pathway", visioName: "J-Box", cadBlock: "JBOX"),
+        .init(id: "infra.pull", name: "Pull Point", discipline: .infrastructure, category: "Pathway", visioName: "Pull Box", cadBlock: "PULL"),
+    ]
+
+    // MARK: AV / Intercom (XTEN-AV)
+
+    static let av: [DesignSymbol] = [
+        .init(id: "av.speaker", name: "Ceiling Speaker", discipline: .av, category: "Audio", visioName: "Speaker", cadBlock: "AV_SPK"),
+        .init(id: "av.amp", name: "Amplifier", discipline: .av, category: "Audio", visioName: "Amplifier", cadBlock: "AV_AMP"),
+        .init(id: "av.dsp", name: "DSP", discipline: .av, category: "Audio", visioName: "DSP", cadBlock: "AV_DSP"),
+        .init(id: "av.display", name: "Display", discipline: .av, category: "Video", visioName: "Display", cadBlock: "AV_DISP"),
+        .init(id: "av.matrix", name: "AV Matrix", discipline: .av, category: "Video", visioName: "Matrix Switcher", cadBlock: "AV_MX"),
+        .init(id: "av.control", name: "Control Processor", discipline: .av, category: "Control", visioName: "Control Proc", cadBlock: "AV_CTRL"),
+    ]
+
+    // MARK: Annotation / Visio helpers
+
+    static let annotation: [DesignSymbol] = [
+        .init(id: "ann.text", name: "Text Note", discipline: nil, category: "Annotation", visioName: "Text", cadBlock: "TEXT"),
+        .init(id: "ann.north", name: "North Arrow", discipline: nil, category: "Annotation", visioName: "North Arrow", cadBlock: "NORTH"),
+        .init(id: "ann.scale", name: "Scale Bar", discipline: nil, category: "Annotation", visioName: "Scale", cadBlock: "SCALE"),
+        .init(id: "ann.title", name: "Title Block", discipline: nil, category: "Annotation", visioName: "Title Block", cadBlock: "TITLE"),
+        .init(id: "ann.room", name: "Room Label", discipline: nil, category: "Annotation", visioName: "Room Tag", cadBlock: "ROOM"),
+    ]
+
+    // MARK: CAD primitives
+
+    static let cadPrimitives: [DesignSymbol] = [
+        .init(id: "cad.line", name: "Line", discipline: nil, category: "CAD", visioName: "Line", cadBlock: "LINE"),
+        .init(id: "cad.polyline", name: "Polyline", discipline: nil, category: "CAD", visioName: "Polyline", cadBlock: "PLINE"),
+        .init(id: "cad.rect", name: "Rectangle", discipline: nil, category: "CAD", visioName: "Rectangle", cadBlock: "RECT"),
+        .init(id: "cad.circle", name: "Circle", discipline: nil, category: "CAD", visioName: "Circle", cadBlock: "CIRCLE"),
+        .init(id: "cad.wall", name: "Wall", discipline: nil, category: "CAD", visioName: "Wall", cadBlock: "WALL"),
+        .init(id: "cad.door", name: "Door Swing", discipline: nil, category: "CAD", visioName: "Door", cadBlock: "DOOR"),
+        .init(id: "cad.window", name: "Window", discipline: nil, category: "CAD", visioName: "Window", cadBlock: "WINDOW"),
+        .init(id: "cad.dimension", name: "Dimension", discipline: nil, category: "CAD", visioName: "Dimension", cadBlock: "DIM"),
+    ]
+}
+
+struct DesignSymbol: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let discipline: SystemDiscipline?
+    let category: String
+    let visioName: String
+    let cadBlock: String
+}
+
+/// Renders Visio/CAD-style device glyphs for the canvas and library.
+struct SymbolGlyphView: View {
+    let symbolID: String
+    var size: CGFloat = 36
+    var tint: Color = DesignTheme.brandNavy
+
+    var body: some View {
+        Canvas { context, canvasSize in
+            let rect = CGRect(origin: .zero, size: canvasSize).insetBy(dx: 2, dy: 2)
+            draw(symbolID: symbolID, in: rect, context: &context)
+        }
+        .frame(width: size, height: size)
+        .foregroundStyle(tint)
+    }
+
+    private func draw(symbolID: String, in rect: CGRect, context: inout GraphicsContext) {
+        var path = Path()
+        let stroke = StrokeStyle(lineWidth: max(1.5, size / 24), lineCap: .round, lineJoin: .round)
+        let mid = CGPoint(x: rect.midX, y: rect.midY)
+
+        switch symbolID {
+        case "cam.dome", "cam.fisheye":
+            path.addEllipse(in: rect.insetBy(dx: rect.width * 0.15, dy: rect.height * 0.15))
+            context.stroke(path, with: .color(tint), style: stroke)
+            var cross = Path()
+            cross.move(to: CGPoint(x: mid.x - 4, y: mid.y))
+            cross.addLine(to: CGPoint(x: mid.x + 4, y: mid.y))
+            cross.move(to: CGPoint(x: mid.x, y: mid.y - 4))
+            cross.addLine(to: CGPoint(x: mid.x, y: mid.y + 4))
+            context.stroke(cross, with: .color(tint), style: stroke)
+
+        case "cam.bullet":
+            path.addRoundedRect(in: CGRect(x: rect.minX, y: mid.y - 6, width: rect.width * 0.7, height: 12), cornerSize: CGSize(width: 3, height: 3))
+            path.addEllipse(in: CGRect(x: rect.maxX - 14, y: mid.y - 7, width: 14, height: 14))
+            context.stroke(path, with: .color(tint), style: stroke)
+
+        case "cam.ptz":
+            path.addEllipse(in: rect.insetBy(dx: 4, dy: 4))
+            path.move(to: mid)
+            path.addLine(to: CGPoint(x: rect.maxX - 2, y: mid.y))
+            context.stroke(path, with: .color(tint), style: stroke)
+
+        case "acs.reader", "acs.rex_button":
+            path.addRoundedRect(in: rect.insetBy(dx: 6, dy: 2), cornerSize: CGSize(width: 4, height: 4))
+            context.stroke(path, with: .color(tint), style: stroke)
+            var inner = Path()
+            inner.addEllipse(in: CGRect(x: mid.x - 4, y: mid.y - 4, width: 8, height: 8))
+            context.stroke(inner, with: .color(tint), style: stroke)
+
+        case "acs.lock", "acs.maglock":
+            path.addRect(CGRect(x: mid.x - 8, y: mid.y - 2, width: 16, height: 12))
+            path.addArc(center: CGPoint(x: mid.x, y: mid.y - 2), radius: 7, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
+            context.stroke(path, with: .color(tint), style: stroke)
+
+        case "ids.pir", "ids.glassbreak":
+            path.move(to: CGPoint(x: mid.x, y: rect.minY + 4))
+            path.addLine(to: CGPoint(x: rect.maxX - 4, y: rect.maxY - 4))
+            path.addLine(to: CGPoint(x: rect.minX + 4, y: rect.maxY - 4))
+            path.closeSubpath()
+            context.stroke(path, with: .color(tint), style: stroke)
+
+        case "ids.door_contact", "ids.window_contact":
+            path.addRect(CGRect(x: rect.minX + 4, y: mid.y - 3, width: 10, height: 6))
+            path.addRect(CGRect(x: rect.maxX - 14, y: mid.y - 3, width: 10, height: 6))
+            context.stroke(path, with: .color(tint), style: stroke)
+
+        case "ids.panel", "acs.controller", "cam.nvr", "infra.rack", "infra.switch", "infra.poe":
+            path.addRoundedRect(in: rect.insetBy(dx: 4, dy: 4), cornerSize: CGSize(width: 3, height: 3))
+            var vents = Path()
+            for i in 0..<3 {
+                let y = rect.minY + 10 + CGFloat(i) * 6
+                vents.move(to: CGPoint(x: rect.minX + 10, y: y))
+                vents.addLine(to: CGPoint(x: rect.maxX - 10, y: y))
+            }
+            context.stroke(path, with: .color(tint), style: stroke)
+            context.stroke(vents, with: .color(tint), style: StrokeStyle(lineWidth: 1))
+
+        case "infra.ap", "av.speaker":
+            path.addEllipse(in: rect.insetBy(dx: 8, dy: 8))
+            context.stroke(path, with: .color(tint), style: stroke)
+            for r in [10, 14] as [CGFloat] {
+                var ring = Path()
+                ring.addArc(center: mid, radius: r, startAngle: .degrees(-40), endAngle: .degrees(40), clockwise: false)
+                context.stroke(ring, with: .color(tint), style: stroke)
+            }
+
+        case "cad.wall":
+            path.move(to: CGPoint(x: rect.minX, y: mid.y - 3))
+            path.addLine(to: CGPoint(x: rect.maxX, y: mid.y - 3))
+            path.move(to: CGPoint(x: rect.minX, y: mid.y + 3))
+            path.addLine(to: CGPoint(x: rect.maxX, y: mid.y + 3))
+            context.stroke(path, with: .color(tint), style: StrokeStyle(lineWidth: 2))
+
+        case "cad.door":
+            path.move(to: CGPoint(x: rect.minX + 4, y: rect.maxY - 6))
+            path.addLine(to: CGPoint(x: rect.minX + 4, y: rect.minY + 6))
+            path.addArc(center: CGPoint(x: rect.minX + 4, y: rect.maxY - 6), radius: rect.width * 0.7, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+            context.stroke(path, with: .color(tint), style: stroke)
+
+        case "ann.north":
+            path.move(to: CGPoint(x: mid.x, y: rect.minY + 2))
+            path.addLine(to: CGPoint(x: mid.x - 8, y: rect.maxY - 4))
+            path.addLine(to: CGPoint(x: mid.x, y: rect.maxY - 10))
+            path.addLine(to: CGPoint(x: mid.x + 8, y: rect.maxY - 4))
+            path.closeSubpath()
+            context.fill(path, with: .color(tint))
+
+        default:
+            path.addRoundedRect(in: rect.insetBy(dx: 4, dy: 4), cornerSize: CGSize(width: 4, height: 4))
+            context.stroke(path, with: .color(tint), style: stroke)
+            var diag = Path()
+            diag.move(to: CGPoint(x: rect.minX + 8, y: rect.maxY - 8))
+            diag.addLine(to: CGPoint(x: rect.maxX - 8, y: rect.minY + 8))
+            context.stroke(diag, with: .color(tint), style: stroke)
+        }
+    }
+}
+
+/// Small Visio / AutoCAD badge used in the library chrome.
+struct FormatBadge: View {
+    enum Format { case visio, cad, pdf }
+    let format: Format
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(color, in: RoundedRectangle(cornerRadius: 3))
+    }
+
+    private var label: String {
+        switch format {
+        case .visio: return "VSD"
+        case .cad: return "CAD"
+        case .pdf: return "PDF"
+        }
+    }
+
+    private var color: Color {
+        switch format {
+        case .visio: return Color(red: 0.15, green: 0.40, blue: 0.70)
+        case .cad: return Color(red: 0.75, green: 0.25, blue: 0.15)
+        case .pdf: return Color(red: 0.70, green: 0.15, blue: 0.15)
+        }
+    }
+}
+
+
+// ===== FILE: Theme/DesignTheme.swift =====
+
+import SwiftUI
+
+/// Security Estimator Pro · Design visual system (iPad-first).
+enum DesignTheme {
+    static let surface = Color(red: 0.957, green: 0.965, blue: 0.973)
+    static let surfaceSecondary = Color.white
+    static let brandNavy = Color(red: 0.039, green: 0.106, blue: 0.227)
+    static let brandGold = Color(red: 0.773, green: 0.627, blue: 0.349)
+    static let brandPrimary = brandGold
+    static let brandAccent = Color(red: 0.180, green: 0.490, blue: 0.620)
+    static let brandTertiary = Color(red: 0.953, green: 0.922, blue: 0.843)
+    static let onSurface = brandNavy
+    static let muted = Color(red: 0.420, green: 0.451, blue: 0.502)
+    static let canvasGrid = Color(red: 0.880, green: 0.900, blue: 0.920)
+    static let layerIDS = Color(red: 0.85, green: 0.25, blue: 0.25)
+    static let layerACS = Color(red: 0.20, green: 0.55, blue: 0.85)
+    static let layerCCTV = Color(red: 0.25, green: 0.70, blue: 0.45)
+    static let layerInfra = Color(red: 0.70, green: 0.50, blue: 0.20)
+    static let layerAV = Color(red: 0.55, green: 0.35, blue: 0.75)
+    static let success = Color(red: 0.20, green: 0.70, blue: 0.35)
+    static let warning = Color(red: 0.95, green: 0.62, blue: 0.04)
+    static let error = Color(red: 1.0, green: 0.27, blue: 0.23)
+
+    static let corner: CGFloat = 12
+    static let canvasMinZoom: CGFloat = 0.25
+    static let canvasMaxZoom: CGFloat = 4.0
+}
+
+enum SystemDiscipline: String, Codable, CaseIterable, Identifiable {
+    case ids = "IDS"
+    case access = "Access Control"
+    case cctv = "Video Surveillance"
+    case infrastructure = "Infrastructure"
+    case av = "AV / Intercom"
+    case fire = "Fire / Life Safety"
+
+    var id: String { rawValue }
+
+    var color: Color {
+        switch self {
+        case .ids: return DesignTheme.layerIDS
+        case .access: return DesignTheme.layerACS
+        case .cctv: return DesignTheme.layerCCTV
+        case .infrastructure: return DesignTheme.layerInfra
+        case .av: return DesignTheme.layerAV
+        case .fire: return DesignTheme.error
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .ids: return "shield.lefthalf.filled"
+        case .access: return "key.fill"
+        case .cctv: return "video.fill"
+        case .infrastructure: return "cable.connector"
+        case .av: return "speaker.wave.2.fill"
+        case .fire: return "flame.fill"
+        }
+    }
+}
+
+
+// ===== FILE: Views/Canvas/DrawingCanvas.swift =====
+
+import SwiftUI
+import SwiftData
+
+struct CanvasWorkspace: View {
+    @Bindable var project: DesignProject
+    var sheet: DesignSheet?
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                if workspace.showLibrary {
+                    SymbolLibraryPanel()
+                        .frame(width: 280)
+                        .background(DesignTheme.surfaceSecondary)
+                    Divider()
+                }
+
+                ZStack {
+                    DesignTheme.surface.ignoresSafeArea()
+                    if let sheet {
+                        DrawingCanvas(project: project, sheet: sheet)
+                    } else {
+                        ContentUnavailableView("No Sheet", systemImage: "doc", description: Text("Add a floor plan sheet to start drawing."))
+                    }
+                }
+
+                if workspace.showLayers, let sheet {
+                    Divider()
+                    LayersPanel(sheet: sheet)
+                        .frame(width: 220)
+                        .background(DesignTheme.surfaceSecondary)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                ToolPalette()
+                    .padding(.bottom, 12)
+            }
+            .overlay(alignment: .topTrailing) {
+                CanvasChromeToggles()
+                    .padding(12)
+            }
+        }
+    }
+}
+
+struct DrawingCanvas: View {
+    @Bindable var project: DesignProject
+    @Bindable var sheet: DesignSheet
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @State private var dragStart: CGPoint?
+    @State private var measureEnd: CGPoint?
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .topLeading) {
+                // Grid
+                if workspace.showGrid {
+                    CanvasGrid(size: CGSize(width: sheet.width, height: sheet.height), spacing: 40)
+                }
+
+                // PDF / background hint
+                if let bg = sheet.backgroundPDFBookmark {
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(DesignTheme.brandAccent.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        .frame(width: min(sheet.width, 1200), height: min(sheet.height, 900))
+                        .overlay {
+                            Text("Background: \(bg)")
+                                .font(.caption)
+                                .foregroundStyle(DesignTheme.muted)
+                        }
+                        .padding(40)
+                }
+
+                // Coverage zones
+                if workspace.showCoverage || workspace.activeMode == .coverage {
+                    ForEach(sheet.coverageZones) { zone in
+                        CoverageWedge(zone: zone, feetPerUnit: project.scaleFeetPerUnit)
+                    }
+                }
+
+                // Markups
+                if workspace.activeMode == .markup || workspace.selectedTool == .markup {
+                    ForEach(sheet.markups) { markup in
+                        MarkupView(markup: markup)
+                    }
+                }
+
+                // Devices
+                ForEach(sheet.devices) { device in
+                    DeviceNodeView(
+                        device: device,
+                        selected: workspace.selectedDeviceID == device.id
+                    )
+                    .position(device.position)
+                    .gesture(deviceDrag(device))
+                    .onTapGesture { selectOrErase(device) }
+                }
+
+                // Measure overlay
+                if let start = dragStart, let end = measureEnd, workspace.selectedTool == .measure {
+                    Path { p in
+                        p.move(to: start)
+                        p.addLine(to: end)
+                    }
+                    .stroke(DesignTheme.brandGold, style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
+                    let dist = hypot(end.x - start.x, end.y - start.y) * project.scaleFeetPerUnit
+                    Text(String(format: "%.1f ft", dist))
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .padding(6)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .position(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 - 16)
+                }
+            }
+            .frame(width: sheet.width, height: sheet.height)
+            .scaleEffect(workspace.canvasZoom, anchor: .topLeading)
+            .offset(workspace.canvasOffset)
+            .gesture(canvasGesture(in: proxy.size))
+            .background(Color.white)
+            .clipped()
+            .contentShape(Rectangle())
+        }
+    }
+
+    private func selectOrErase(_ device: PlacedDevice) {
+        if workspace.selectedTool == .erase {
+            sheet.devices.removeAll { $0.id == device.id }
+            sheet.coverageZones.removeAll { $0.deviceID == device.id }
+            project.updatedAt = Date()
+        } else {
+            workspace.selectedDeviceID = device.id
+        }
+    }
+
+    private func deviceDrag(_ device: PlacedDevice) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                guard workspace.selectedTool == .select || workspace.selectedTool == .place else { return }
+                guard !isLayerLocked(for: device) else { return }
+                device.x = value.location.x
+                device.y = value.location.y
+            }
+            .onEnded { _ in project.updatedAt = Date() }
+    }
+
+    private func isLayerLocked(for device: PlacedDevice) -> Bool {
+        guard let layerID = device.layerID else { return false }
+        return sheet.layers.first(where: { $0.id == layerID })?.isLocked == true
+    }
+
+    private func canvasGesture(in size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let point = canvasPoint(from: value.location)
+                switch workspace.selectedTool {
+                case .pan:
+                    workspace.canvasOffset = CGSize(
+                        width: workspace.canvasOffset.width + value.translation.width * 0.05,
+                        height: workspace.canvasOffset.height + value.translation.height * 0.05
+                    )
+                case .measure:
+                    if dragStart == nil { dragStart = point }
+                    measureEnd = point
+                case .place:
+                    break
+                default:
+                    break
+                }
+            }
+            .onEnded { value in
+                let point = canvasPoint(from: value.location)
+                switch workspace.selectedTool {
+                case .place:
+                    placeSymbol(at: point)
+                case .coverage:
+                    addCoverage(at: point)
+                case .markup:
+                    addMarkup(at: point)
+                case .measure:
+                    dragStart = nil
+                    measureEnd = nil
+                default:
+                    break
+                }
+            }
+    }
+
+    private func canvasPoint(from viewPoint: CGPoint) -> CGPoint {
+        CGPoint(
+            x: (viewPoint.x - workspace.canvasOffset.width) / workspace.canvasZoom,
+            y: (viewPoint.y - workspace.canvasOffset.height) / workspace.canvasZoom
+        )
+    }
+
+    private func placeSymbol(at point: CGPoint) {
+        guard let symbolID = workspace.selectedSymbolID,
+              let symbol = SymbolLibrary.symbol(id: symbolID) else { return }
+        let count = sheet.devices.filter { $0.symbolID == symbolID }.count + 1
+        let tagPrefix = String(symbol.cadBlock.prefix(3))
+        let device = PlacedDevice(
+            symbolID: symbolID,
+            label: symbol.name,
+            tag: "\(tagPrefix)-\(String(format: "%02d", count))",
+            discipline: symbol.discipline ?? workspace.selectedDiscipline ?? .infrastructure,
+            x: point.x,
+            y: point.y
+        )
+        if let catalog = try? modelContext.fetch(FetchDescriptor<CatalogDevice>()).first(where: { $0.symbolID == symbolID }) {
+            device.catalogSKU = catalog.sku
+            device.manufacturer = catalog.manufacturer
+            device.modelName = catalog.modelName
+            device.unitCost = catalog.unitCost
+            device.laborHours = catalog.laborHours
+        }
+        sheet.devices.append(device)
+        if symbol.discipline == .cctv {
+            sheet.coverageZones.append(CoverageZone(kind: .cameraFOV, originX: point.x, originY: point.y))
+        }
+        workspace.selectedDeviceID = device.id
+        project.updatedAt = Date()
+    }
+
+    private func addCoverage(at point: CGPoint) {
+        sheet.coverageZones.append(
+            CoverageZone(kind: .cameraFOV, originX: point.x, originY: point.y, headingDegrees: 0, fovDegrees: 90, rangeFeet: 40)
+        )
+        project.updatedAt = Date()
+    }
+
+    private func addMarkup(at point: CGPoint) {
+        sheet.markups.append(MarkupAnnotation(kind: .cloud, text: "Note", x: point.x, y: point.y))
+        project.updatedAt = Date()
+    }
+}
+
+struct CanvasGrid: View {
+    let size: CGSize
+    let spacing: CGFloat
+
+    var body: some View {
+        Canvas { context, _ in
+            var path = Path()
+            stride(from: 0.0, through: size.width, by: spacing).forEach { x in
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: size.height))
+            }
+            stride(from: 0.0, through: size.height, by: spacing).forEach { y in
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+            }
+            context.stroke(path, with: .color(DesignTheme.canvasGrid), lineWidth: 0.5)
+        }
+        .frame(width: size.width, height: size.height)
+        .allowsHitTesting(false)
+    }
+}
+
+struct DeviceNodeView: View {
+    @Bindable var device: PlacedDevice
+    var selected: Bool
+
+    var body: some View {
+        VStack(spacing: 2) {
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 40, height: 40)
+                    .shadow(color: .black.opacity(0.12), radius: selected ? 6 : 2, y: 1)
+                Circle()
+                    .strokeBorder(device.discipline.color, lineWidth: selected ? 2.5 : 1.5)
+                    .frame(width: 40, height: 40)
+                SymbolGlyphView(symbolID: device.symbolID, size: 26, tint: device.discipline.color)
+            }
+            Text(device.tag)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(DesignTheme.brandTertiary.opacity(0.95), in: Capsule())
+        }
+        .frame(width: 72, height: 60)
+    }
+}
+
+struct CoverageWedge: View {
+    @Bindable var zone: CoverageZone
+    var feetPerUnit: Double
+
+    var body: some View {
+        let radius = CGFloat(zone.rangeFeet / max(feetPerUnit, 0.01))
+        CoverageShape(heading: zone.headingDegrees, fov: zone.fovDegrees)
+            .fill(DesignTheme.layerCCTV.opacity(0.18))
+            .overlay(CoverageShape(heading: zone.headingDegrees, fov: zone.fovDegrees).stroke(DesignTheme.layerCCTV.opacity(0.55), lineWidth: 1))
+            .frame(width: radius * 2, height: radius * 2)
+            .position(x: zone.originX, y: zone.originY)
+            .allowsHitTesting(false)
+    }
+}
+
+struct CoverageShape: Shape {
+    var heading: Double
+    var fov: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2
+        let start = Angle(degrees: heading - fov / 2 - 90)
+        let end = Angle(degrees: heading + fov / 2 - 90)
+        path.move(to: center)
+        path.addArc(center: center, radius: radius, startAngle: start, endAngle: end, clockwise: false)
+        path.closeSubpath()
+        return path
+    }
+}
+
+struct MarkupView: View {
+    @Bindable var markup: MarkupAnnotation
+
+    var body: some View {
+        Text(markup.text)
+            .font(.caption)
+            .padding(8)
+            .background(DesignTheme.brandGold.opacity(0.2))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(DesignTheme.brandGold, style: StrokeStyle(lineWidth: 1.5, dash: markup.kind == .cloud ? [5, 3] : []))
+            )
+            .position(x: markup.x, y: markup.y)
+    }
+}
+
+struct ToolPalette: View {
+    @EnvironmentObject private var workspace: DesignWorkspace
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(DesignTool.allCases) { tool in
+                Button {
+                    workspace.selectedTool = tool
+                    if tool == .place && workspace.selectedSymbolID == nil {
+                        workspace.selectedSymbolID = "cam.dome"
+                    }
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: tool.systemImage)
+                        Text(tool.label).font(.system(size: 9))
+                    }
+                    .foregroundStyle(workspace.selectedTool == tool ? DesignTheme.brandNavy : DesignTheme.muted)
+                    .frame(width: 56, height: 44)
+                    .background(
+                        workspace.selectedTool == tool ? DesignTheme.brandTertiary : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 8)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+    }
+}
+
+struct CanvasChromeToggles: View {
+    @EnvironmentObject private var workspace: DesignWorkspace
+
+    var body: some View {
+        HStack(spacing: 8) {
+            toggle("grid", "Grid", workspace.showGrid) { workspace.showGrid.toggle() }
+            toggle("cone", "FOV", workspace.showCoverage) { workspace.showCoverage.toggle() }
+            toggle("square.stack.3d.up", "Lib", workspace.showLibrary) { workspace.showLibrary.toggle() }
+            Menu {
+                Button("25%") { workspace.canvasZoom = 0.25 }
+                Button("50%") { workspace.canvasZoom = 0.5 }
+                Button("100%") { workspace.canvasZoom = 1 }
+                Button("150%") { workspace.canvasZoom = 1.5 }
+                Button("200%") { workspace.canvasZoom = 2 }
+            } label: {
+                Text("\(Int(workspace.canvasZoom * 100))%")
+                    .font(.caption.monospacedDigit())
+                    .padding(8)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+        }
+    }
+
+    private func toggle(_ icon: String, _ label: String, _ on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .foregroundStyle(on ? DesignTheme.brandNavy : DesignTheme.muted)
+                .padding(8)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel(label)
+    }
+}
+
+
+// ===== FILE: Views/Canvas/WorkspaceDetail.swift =====
+
+import SwiftUI
+import SwiftData
+import UniformTypeIdentifiers
+
+struct WorkspaceDetail: View {
+    @Bindable var project: DesignProject
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @State private var activeSheet: DesignSheet?
+    @State private var showImporter = false
+    @State private var importContentTypes: [UTType] = DesignImportService.supportedTypes
+    @State private var showExporter = false
+    @State private var exportFormat: DesignExportService.ExportFormat = .pdf
+    @State private var exportDocument: ExportDocument?
+    @State private var showCapabilities = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ModePickerBar()
+            Divider()
+            Group {
+                switch workspace.activeMode {
+                case .draw, .coverage, .markup:
+                    CanvasWorkspace(project: project, sheet: bindingSheet)
+                case .survey:
+                    SurveyView(project: project, sheet: bindingSheet)
+                case .schematic:
+                    SchematicView(project: project, sheet: bindingSheet)
+                case .estimate:
+                    EstimateView(project: project)
+                case .documents:
+                    DocumentsView(project: project)
+                }
+            }
+        }
+        .navigationTitle(activeSheet?.title ?? project.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { toolbarContent }
+        .fileImporter(
+            isPresented: $showImporter,
+            allowedContentTypes: importContentTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            handleImport(result)
+        }
+        .fileExporter(
+            isPresented: $showExporter,
+            document: exportDocument,
+            contentType: exportFormat.utType,
+            defaultFilename: exportFilename
+        ) { result in
+            switch result {
+            case .success(let url):
+                workspace.lastExportMessage = "Exported \(url.lastPathComponent)"
+            case .failure(let error):
+                workspace.lastExportMessage = error.localizedDescription
+            }
+        }
+        .onAppear {
+            if activeSheet == nil {
+                activeSheet = project.sheets.sorted(by: { $0.sortOrder < $1.sortOrder }).first
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepSelectSheet)) { note in
+            if let id = note.object as? UUID {
+                activeSheet = project.sheets.first { $0.id == id }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepImportVisio)) { _ in
+            importContentTypes = [.vsdx, .vdx, .xml, .data]
+            showImporter = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepImportCAD)) { _ in
+            importContentTypes = [.dxf, .dwg, .data]
+            showImporter = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepImportPDF)) { _ in
+            importContentTypes = [.pdf]
+            showImporter = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepExportPDF)) { _ in
+            prepareExport(.pdf)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepExportDXF)) { _ in
+            prepareExport(.dxf)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepExportVisio)) { _ in
+            prepareExport(.visioXML)
+        }
+        .overlay(alignment: .bottom) {
+            if let msg = workspace.lastImportMessage ?? workspace.lastExportMessage {
+                Text(msg)
+                    .font(.caption)
+                    .padding(10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding()
+                    .onTapGesture {
+                        workspace.lastImportMessage = nil
+                        workspace.lastExportMessage = nil
+                    }
+            }
+        }
+        .sheet(isPresented: $showCapabilities) {
+            IndustryBridgeView()
+        }
+    }
+
+    private var bindingSheet: DesignSheet? { activeSheet }
+
+    private var exportFilename: String {
+        let base = project.name.replacingOccurrences(of: " ", with: "_")
+        return "\(base).\(exportFormat.fileExtension)"
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarLeading) {
+            Menu {
+                ForEach(project.sheets.sorted(by: { $0.sortOrder < $1.sortOrder })) { sheet in
+                    Button(sheet.title) { activeSheet = sheet }
+                }
+            } label: {
+                Label(activeSheet?.title ?? "Sheets", systemImage: "doc.richtext")
+            }
+        }
+        ToolbarItemGroup(placement: .primaryAction) {
+            Menu {
+                Button { importContentTypes = DesignImportService.supportedTypes; showImporter = true } label: {
+                    Label("Import Visio / CAD / PDF", systemImage: "square.and.arrow.down")
+                }
+                Divider()
+                Button("Export PDF") { prepareExport(.pdf) }
+                Button("Export DXF") { prepareExport(.dxf) }
+                Button("Export Visio XML") { prepareExport(.visioXML) }
+                Button("Export BOM CSV") { prepareExport(.csvBOM) }
+            } label: {
+                Image(systemName: "square.and.arrow.up.on.square")
+            }
+            Button { showCapabilities = true } label: {
+                Image(systemName: "rectangle.3.group")
+            }
+            .accessibilityLabel("Industry tools bridge")
+        }
+    }
+
+    private func handleImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            workspace.lastImportMessage = error.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let imported = try DesignImportService.importFile(at: url)
+                applyImport(imported, fileName: url.lastPathComponent)
+            } catch {
+                workspace.lastImportMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func applyImport(_ result: DesignImportService.ImportResult, fileName: String) {
+        guard let sheet = activeSheet ?? project.sheets.first else {
+            workspace.lastImportMessage = "Create a sheet before importing."
+            return
+        }
+        switch result {
+        case .floorPlanBackground(let title, let pageSize, let pageCount):
+            sheet.backgroundPDFBookmark = fileName
+            sheet.width = max(sheet.width, pageSize.width * 2)
+            sheet.height = max(sheet.height, pageSize.height * 2)
+            if sheet.title.hasPrefix("Floor Plan") || sheet.title.hasPrefix("Sheet") {
+                sheet.title = title
+            }
+            project.documents.append(ProjectDocument(title: title, kind: .floorPlanPDF, fileName: fileName))
+            workspace.lastImportMessage = "PDF “\(fileName)” attached (\(pageCount) page\(pageCount == 1 ? "" : "s"))."
+
+        case .visioStencil(let shapes):
+            for shape in shapes {
+                let sym = SymbolLibrary.symbol(id: shape.symbolHint)
+                let device = PlacedDevice(
+                    symbolID: shape.symbolHint,
+                    label: shape.name,
+                    tag: String(shape.name.prefix(8)).uppercased(),
+                    discipline: sym?.discipline ?? .cctv,
+                    x: shape.x,
+                    y: shape.y
+                )
+                sheet.devices.append(device)
+            }
+            project.documents.append(ProjectDocument(title: fileName, kind: .visio, fileName: fileName))
+            workspace.lastImportMessage = "Visio: placed \(shapes.count) shape\(shapes.count == 1 ? "" : "s")."
+
+        case .cadEntities(let entities):
+            var placed = 0
+            for entity in entities {
+                if entity.entityType.hasPrefix("INSERT:"), let pt = entity.points.first {
+                    let block = String(entity.entityType.dropFirst(7))
+                    let symbol = SymbolLibrary.all.first {
+                        $0.cadBlock.compare(block, options: .caseInsensitive) == .orderedSame
+                    } ?? SymbolLibrary.symbol(id: "cam.dome")!
+                    let device = PlacedDevice(
+                        symbolID: symbol.id,
+                        label: block,
+                        tag: block,
+                        discipline: symbol.discipline ?? .infrastructure,
+                        x: pt.x,
+                        y: pt.y
+                    )
+                    sheet.devices.append(device)
+                    placed += 1
+                }
+            }
+            project.documents.append(ProjectDocument(title: fileName, kind: .autocad, fileName: fileName))
+            workspace.lastImportMessage = "DXF: \(entities.count) entities, \(placed) blocks placed."
+
+        case .message(let text):
+            project.documents.append(ProjectDocument(title: fileName, kind: .autocad, fileName: fileName))
+            workspace.lastImportMessage = text
+        }
+        project.updatedAt = Date()
+    }
+
+    private func prepareExport(_ format: DesignExportService.ExportFormat) {
+        exportFormat = format
+        guard let sheet = activeSheet ?? project.sheets.first else {
+            workspace.lastExportMessage = "No sheet to export."
+            return
+        }
+        let data: Data
+        switch format {
+        case .pdf:
+            data = DesignExportService.exportPDF(project: project, sheet: sheet)
+        case .dxf:
+            data = Data(DesignExportService.exportDXF(sheet: sheet).utf8)
+        case .visioXML:
+            data = Data(DesignExportService.exportVisioXML(project: project, sheet: sheet).utf8)
+        case .csvBOM:
+            data = Data(DesignExportService.exportBOMCSV(project: project).utf8)
+        case .sepJSON:
+            let payload = [
+                "name": project.name,
+                "client": project.clientName,
+                "devices": "\(sheet.devices.count)"
+            ]
+            data = (try? JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted)) ?? Data()
+        }
+        exportDocument = ExportDocument(data: data)
+        showExporter = true
+    }
+}
+
+struct ExportDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.pdf, .xml, .plainText, .json, .commaSeparatedText, .data] }
+    var data: Data
+
+    init(data: Data) { self.data = data }
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
+struct ModePickerBar: View {
+    @EnvironmentObject private var workspace: DesignWorkspace
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Picker("Mode", selection: $workspace.activeMode) {
+                ForEach(DesignWorkspace.WorkspaceMode.allCases) { mode in
+                    Label(mode.rawValue, systemImage: mode.systemImage).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+
+            Text(workspace.activeMode.inspiredBy)
+                .font(.caption2)
+                .foregroundStyle(DesignTheme.muted)
+                .padding(.bottom, 6)
+        }
+        .background(DesignTheme.surfaceSecondary)
+    }
+}
+
+
+// ===== FILE: Views/Estimate/EstimateDocumentsViews.swift =====
+
+import SwiftUI
+import SwiftData
+
+/// ConEst + Jetbuilt + D-Tools + Specifi + IPVM estimating surface.
+struct EstimateView: View {
+    @Bindable var project: DesignProject
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \CatalogDevice.manufacturer) private var catalog: [CatalogDevice]
+    @State private var ohPercent = 12.0
+    @State private var profitPercent = 10.0
+    @State private var contingencyPercent = 5.0
+
+    var body: some View {
+        HStack(spacing: 0) {
+            List {
+                Section {
+                    Text("Takeoff from drawing · Specifi catalog · ConEst labor · Jetbuilt proposal totals")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+                    Button("Rebuild BOM from Placed Devices") { rebuildFromDevices() }
+                }
+
+                Section("Line Items") {
+                    ForEach(project.estimateLines) { line in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(line.descriptionText).font(.subheadline.weight(.semibold))
+                            HStack {
+                                Text("Qty \(line.quantity, format: .number)")
+                                Spacer()
+                                Text(line.extended, format: .currency(code: "USD"))
+                                    .foregroundStyle(DesignTheme.brandNavy)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(DesignTheme.muted)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        for i in indexSet {
+                            modelContext.delete(project.estimateLines[i])
+                        }
+                    }
+                }
+
+                Section("Catalog (Specifi / IPVM)") {
+                    ForEach(catalog.prefix(20)) { item in
+                        Button {
+                            addFromCatalog(item)
+                        } label: {
+                            HStack {
+                                SymbolGlyphView(symbolID: item.symbolID, size: 24, tint: item.discipline.color)
+                                VStack(alignment: .leading) {
+                                    Text("\(item.manufacturer) \(item.modelName)")
+                                        .font(.subheadline)
+                                    Text("\(item.sku) · \(item.unitCost, format: .currency(code: "USD"))")
+                                        .font(.caption2)
+                                        .foregroundStyle(DesignTheme.muted)
+                                }
+                                Spacer()
+                                Image(systemName: "plus.circle")
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxWidth: 520)
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Proposal Summary")
+                        .font(.title2.weight(.bold))
+                    Text("Jetbuilt-style roll-up")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+
+                    summaryRow("Material", materialSubtotal)
+                    summaryRow("Labor", laborSubtotal)
+                    Divider()
+                    summaryRow("Subtotal", materialSubtotal + laborSubtotal)
+                    SliderRow(title: "Overhead", value: $ohPercent)
+                    SliderRow(title: "Profit", value: $profitPercent)
+                    SliderRow(title: "Contingency", value: $contingencyPercent)
+                    Divider()
+                    summaryRow("Grand Total", grandTotal, emphasize: true)
+
+                    ShareLink(
+                        item: proposalText,
+                        subject: Text(project.name),
+                        message: Text("SEP Design proposal")
+                    ) {
+                        Label("Share Proposal", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DesignTheme.brandNavy)
+                }
+                .padding(24)
+            }
+            .background(DesignTheme.surface)
+        }
+    }
+
+    private var materialSubtotal: Double {
+        project.estimateLines.reduce(0) { $0 + $1.materialTotal }
+    }
+
+    private var laborSubtotal: Double {
+        project.estimateLines.reduce(0) { $0 + $1.laborTotal }
+    }
+
+    private var grandTotal: Double {
+        let sub = materialSubtotal + laborSubtotal
+        let oh = sub * ohPercent / 100
+        let profit = (sub + oh) * profitPercent / 100
+        let cont = (sub + oh + profit) * contingencyPercent / 100
+        return sub + oh + profit + cont
+    }
+
+    private var proposalText: String {
+        """
+        SEP Design Proposal
+        \(project.name)
+        Client: \(project.clientName)
+        Site: \(project.siteAddress)
+
+        Material: \(materialSubtotal)
+        Labor: \(laborSubtotal)
+        Grand Total: \(grandTotal)
+
+        Generated by SEP Design · NVSSMD
+        """
+    }
+
+    private func summaryRow(_ title: String, _ value: Double, emphasize: Bool = false) -> some View {
+        HStack {
+            Text(title)
+                .font(emphasize ? .headline : .body)
+            Spacer()
+            Text(value, format: .currency(code: "USD"))
+                .font(emphasize ? .title3.weight(.bold) : .body.monospacedDigit())
+                .foregroundStyle(emphasize ? DesignTheme.brandGold : DesignTheme.onSurface)
+        }
+    }
+
+    private func rebuildFromDevices() {
+        for line in project.estimateLines {
+            modelContext.delete(line)
+        }
+        project.estimateLines.removeAll()
+        for sheet in project.sheets {
+            for d in sheet.devices where d.unitCost > 0 || d.laborHours > 0 {
+                project.estimateLines.append(DesignEstimateLine(
+                    descriptionText: "\(d.label) (\(d.tag))",
+                    quantity: 1,
+                    unitCost: d.unitCost,
+                    laborHours: d.laborHours
+                ))
+            }
+        }
+        project.updatedAt = Date()
+    }
+
+    private func addFromCatalog(_ item: CatalogDevice) {
+        project.estimateLines.append(DesignEstimateLine(
+            descriptionText: "\(item.manufacturer) \(item.modelName)",
+            quantity: 1,
+            unitCost: item.unitCost,
+            laborHours: item.laborHours
+        ))
+        project.updatedAt = Date()
+    }
+}
+
+struct SliderRow: View {
+    let title: String
+    @Binding var value: Double
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text("\(Int(value))%")
+                    .foregroundStyle(DesignTheme.muted)
+            }
+            Slider(value: $value, in: 0...40, step: 1)
+                .tint(DesignTheme.brandGold)
+        }
+    }
+}
+
+/// Simply Wise + SiteOwl + Bluebeam document vault.
+struct DocumentsView: View {
+    @Bindable var project: DesignProject
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @State private var showImporter = false
+
+    var body: some View {
+        List {
+            Section {
+                Text("Document vault inspired by Simply Wise, SiteOwl as-builts, and Bluebeam PDF sets.")
+                    .font(.caption)
+                    .foregroundStyle(DesignTheme.muted)
+                Button {
+                    showImporter = true
+                } label: {
+                    Label("Import Visio / AutoCAD / PDF", systemImage: "square.and.arrow.down")
+                }
+            }
+
+            Section("Files") {
+                if project.documents.isEmpty {
+                    Text("No documents yet")
+                        .foregroundStyle(DesignTheme.muted)
+                } else {
+                    ForEach(project.documents) { doc in
+                        HStack(spacing: 12) {
+                            Image(systemName: icon(for: doc.kind))
+                                .foregroundStyle(DesignTheme.brandAccent)
+                                .frame(width: 28)
+                            VStack(alignment: .leading) {
+                                Text(doc.title).font(.subheadline.weight(.semibold))
+                                Text("\(doc.kind.rawValue) · \(doc.fileName)")
+                                    .font(.caption2)
+                                    .foregroundStyle(DesignTheme.muted)
+                            }
+                            Spacer()
+                            FormatBadge(format: badge(for: doc.kind))
+                        }
+                    }
+                    .onDelete { idx in
+                        for i in idx { project.documents.remove(at: i) }
+                    }
+                }
+            }
+
+            Section("Bluebeam-style Markups") {
+                let markups = project.sheets.flatMap(\.markups)
+                if markups.isEmpty {
+                    Text("Switch to Markup mode on a sheet to add clouds, callouts, and stamps.")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+                } else {
+                    ForEach(markups) { m in
+                        Label("\(m.kind.rawValue): \(m.text)", systemImage: "pencil.tip.crop.circle")
+                    }
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: $showImporter,
+            allowedContentTypes: DesignImportService.supportedTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                let ext = url.pathExtension.lowercased()
+                let kind: DocumentKind
+                switch ext {
+                case "pdf": kind = .floorPlanPDF
+                case "vsdx", "vdx", "vsd": kind = .visio
+                case "dxf", "dwg": kind = .autocad
+                default: kind = .other
+                }
+                project.documents.append(ProjectDocument(
+                    title: url.deletingPathExtension().lastPathComponent,
+                    kind: kind,
+                    fileName: url.lastPathComponent
+                ))
+                workspace.lastImportMessage = "Filed \(url.lastPathComponent) in document vault."
+                // Also push into active sheet when possible
+                NotificationCenter.default.post(
+                    name: ext == "pdf" ? .sepImportPDF : (ext == "dxf" || ext == "dwg" ? .sepImportCAD : .sepImportVisio),
+                    object: nil
+                )
+            }
+        }
+    }
+
+    private func icon(for kind: DocumentKind) -> String {
+        switch kind {
+        case .floorPlanPDF: return "doc.richtext"
+        case .visio: return "square.on.square"
+        case .autocad: return "angle"
+        case .photo: return "photo"
+        case .asBuilt: return "checkmark.seal"
+        case .proposal: return "doc.text"
+        case .submittal: return "tray.and.arrow.down"
+        case .other: return "doc"
+        }
+    }
+
+    private func badge(for kind: DocumentKind) -> FormatBadge.Format {
+        switch kind {
+        case .visio: return .visio
+        case .autocad: return .cad
+        default: return .pdf
+        }
+    }
+}
+
+struct IndustryBridgeView: View {
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("SEP Design brings the essential workflows from these platforms into one native iPad app.")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+                }
+                ForEach(IndustryBridge.capabilities) { cap in
+                    Button {
+                        workspace.activeMode = cap.mode
+                        dismiss()
+                    } label: {
+                        HStack(alignment: .top, spacing: 12) {
+                            Text(cap.id)
+                                .font(.caption.monospaced().weight(.bold))
+                                .foregroundStyle(DesignTheme.brandGold)
+                                .frame(width: 24)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(cap.product)
+                                    .font(.headline)
+                                    .foregroundStyle(DesignTheme.onSurface)
+                                Text(cap.sepFeature)
+                                    .font(.subheadline)
+                                    .foregroundStyle(DesignTheme.muted)
+                                Label(cap.mode.rawValue, systemImage: cap.mode.systemImage)
+                                    .font(.caption)
+                                    .foregroundStyle(DesignTheme.brandAccent)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("14 Tools → One App")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+
+// ===== FILE: Views/Library/SymbolLibraryPanel.swift =====
+
+import SwiftUI
+import SwiftData
+
+struct SymbolLibraryPanel: View {
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @State private var search = ""
+    @State private var formatFilter: FormatFilter = .all
+
+    enum FormatFilter: String, CaseIterable {
+        case all = "All"
+        case visio = "Visio"
+        case cad = "CAD"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Symbol Library")
+                    .font(.headline)
+                Spacer()
+                FormatBadge(format: .visio)
+                FormatBadge(format: .cad)
+            }
+            .padding(12)
+
+            Picker("Discipline", selection: $workspace.selectedDiscipline) {
+                Text("All").tag(SystemDiscipline?.none)
+                ForEach(SystemDiscipline.allCases) { d in
+                    Text(d.rawValue).tag(Optional(d))
+                }
+            }
+            .pickerStyle(.menu)
+            .padding(.horizontal, 12)
+
+            Picker("Format", selection: $formatFilter) {
+                ForEach(FormatFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            TextField("Search symbols", text: $search)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal, 12)
+
+            List(filtered) { symbol in
+                Button {
+                    workspace.selectedSymbolID = symbol.id
+                    workspace.selectedTool = .place
+                } label: {
+                    HStack(spacing: 10) {
+                        SymbolGlyphView(
+                            symbolID: symbol.id,
+                            size: 32,
+                            tint: symbol.discipline?.color ?? DesignTheme.brandNavy
+                        )
+                        .padding(6)
+                        .background(DesignTheme.brandTertiary, in: RoundedRectangle(cornerRadius: 8))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(symbol.name)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(DesignTheme.onSurface)
+                            HStack(spacing: 6) {
+                                Text(symbol.visioName)
+                                    .font(.caption2)
+                                    .foregroundStyle(Color(red: 0.15, green: 0.40, blue: 0.70))
+                                Text("·")
+                                    .foregroundStyle(DesignTheme.muted)
+                                Text(symbol.cadBlock)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(Color(red: 0.75, green: 0.25, blue: 0.15))
+                            }
+                        }
+                        Spacer()
+                        if workspace.selectedSymbolID == symbol.id {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(DesignTheme.brandGold)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .listRowBackground(
+                    workspace.selectedSymbolID == symbol.id
+                    ? DesignTheme.brandTertiary.opacity(0.5)
+                    : Color.clear
+                )
+            }
+            .listStyle(.plain)
+        }
+    }
+
+    private var filtered: [DesignSymbol] {
+        SymbolLibrary.symbols(for: workspace.selectedDiscipline).filter { symbol in
+            let matchesSearch = search.isEmpty
+                || symbol.name.localizedCaseInsensitiveContains(search)
+                || symbol.visioName.localizedCaseInsensitiveContains(search)
+                || symbol.cadBlock.localizedCaseInsensitiveContains(search)
+            let matchesFormat: Bool = {
+                switch formatFilter {
+                case .all: return true
+                case .visio: return !symbol.visioName.isEmpty
+                case .cad: return !symbol.cadBlock.isEmpty
+                }
+            }()
+            return matchesSearch && matchesFormat
+        }
+    }
+}
+
+struct LayersPanel: View {
+    @Bindable var sheet: DesignSheet
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Layers")
+                .font(.headline)
+                .padding(12)
+            List {
+                ForEach(sheet.layers.sorted(by: { $0.sortOrder < $1.sortOrder })) { layer in
+                    HStack {
+                        Circle().fill(layer.discipline.color).frame(width: 10, height: 10)
+                        Text(layer.name).font(.subheadline)
+                        Spacer()
+                        Button {
+                            layer.isVisible.toggle()
+                        } label: {
+                            Image(systemName: layer.isVisible ? "eye" : "eye.slash")
+                        }
+                        .buttonStyle(.plain)
+                        Button {
+                            layer.isLocked.toggle()
+                        } label: {
+                            Image(systemName: layer.isLocked ? "lock.fill" : "lock.open")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .listStyle(.plain)
+        }
+    }
+}
+
+
+// ===== FILE: Views/Projects/ProjectViews.swift =====
+
+import SwiftUI
+import SwiftData
+
+struct NewProjectSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var client = ""
+    @State private var address = ""
+    @State private var createFloorPlan = true
+    var onCreate: (DesignProject) -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Project") {
+                    TextField("Project name", text: $name)
+                    TextField("Client", text: $client)
+                    TextField("Site address", text: $address)
+                }
+                Section("Start with") {
+                    Toggle("Floor plan sheet", isOn: $createFloorPlan)
+                    Text("You can import Visio, AutoCAD DXF/DWG, or PDF under Documents / Import.")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+                }
+            }
+            .navigationTitle("New Design Project")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") { create() }
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func create() {
+        let project = DesignProject(name: name, clientName: client, siteAddress: address)
+        if createFloorPlan {
+            let sheet = DesignSheet(title: "Floor Plan 1", sheetType: .floorPlan)
+            for (i, d) in SystemDiscipline.allCases.enumerated() {
+                sheet.layers.append(DesignLayer(name: d.rawValue, discipline: d, sortOrder: i))
+            }
+            project.sheets = [sheet]
+        }
+        modelContext.insert(project)
+        try? modelContext.save()
+        onCreate(project)
+        dismiss()
+    }
+}
+
+struct SheetBrowser: View {
+    @Bindable var project: DesignProject
+    @State private var selectedSheetID: UUID?
+
+    var body: some View {
+        List {
+            Section {
+                LabeledContent("Client", value: project.clientName.isEmpty ? "—" : project.clientName)
+                LabeledContent("Site", value: project.siteAddress.isEmpty ? "—" : project.siteAddress)
+                Picker("Status", selection: $project.status) {
+                    ForEach(ProjectStatus.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+            } header: {
+                Text(project.name)
+            }
+
+            Section("Sheets") {
+                ForEach(project.sheets.sorted(by: { $0.sortOrder < $1.sortOrder })) { sheet in
+                    NavigationLink {
+                        // Selection handled by parent detail via environment / binding pattern:
+                        Text(sheet.title)
+                    } label: {
+                        HStack {
+                            Image(systemName: sheetIcon(sheet.sheetType))
+                                .foregroundStyle(DesignTheme.brandAccent)
+                            VStack(alignment: .leading) {
+                                Text(sheet.title)
+                                Text("\(sheet.devices.count) devices · \(sheet.sheetType.rawValue)")
+                                    .font(.caption2)
+                                    .foregroundStyle(DesignTheme.muted)
+                            }
+                        }
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        selectedSheetID = sheet.id
+                        NotificationCenter.default.post(name: .sepSelectSheet, object: sheet.id)
+                    })
+                }
+                Button {
+                    addSheet()
+                } label: {
+                    Label("Add Sheet", systemImage: "plus")
+                }
+            }
+
+            Section("Quick Counts") {
+                deviceCountRow(.cctv)
+                deviceCountRow(.access)
+                deviceCountRow(.ids)
+                deviceCountRow(.infrastructure)
+            }
+        }
+        .navigationTitle("Project")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func deviceCountRow(_ d: SystemDiscipline) -> some View {
+        let count = project.sheets.reduce(0) { $0 + $1.devices.filter { $0.discipline == d }.count }
+        return HStack {
+            Image(systemName: d.symbolName).foregroundStyle(d.color)
+            Text(d.rawValue)
+            Spacer()
+            Text("\(count)").foregroundStyle(DesignTheme.muted)
+        }
+    }
+
+    private func sheetIcon(_ type: SheetType) -> String {
+        switch type {
+        case .floorPlan, .sitePlan: return "square.grid.3x3"
+        case .schematic, .riser: return "point.3.connected.trianglepath.dotted"
+        case .coverage: return "cone"
+        case .detail: return "magnifyingglass"
+        }
+    }
+
+    private func addSheet() {
+        let sheet = DesignSheet(title: "Sheet \(project.sheets.count + 1)", sheetType: .floorPlan)
+        sheet.sortOrder = project.sheets.count
+        project.sheets.append(sheet)
+        project.updatedAt = Date()
+    }
+}
+
+extension Notification.Name {
+    static let sepSelectSheet = Notification.Name("sep.design.selectSheet")
+}
+
+
+// ===== FILE: Views/Root/DesignRootView.swift =====
+
+import SwiftUI
+import SwiftData
+
+struct DesignRootView: View {
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var workspace: DesignWorkspace
+    @Query(sort: \DesignProject.updatedAt, order: .reverse) private var projects: [DesignProject]
+    @State private var selectedProject: DesignProject?
+    @State private var showNewProject = false
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            ProjectSidebar(
+                projects: projects,
+                selected: $selectedProject,
+                onNew: { showNewProject = true }
+            )
+            .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 360)
+        } content: {
+            if let project = selectedProject {
+                SheetBrowser(project: project)
+            } else {
+                ContentUnavailableView(
+                    "Select a Project",
+                    systemImage: "building.2",
+                    description: Text("SEP Design unifies survey, CAD drawing, coverage, schematics, estimating, and documents for security systems.")
+                )
+            }
+        } detail: {
+            if let project = selectedProject {
+                WorkspaceDetail(project: project)
+            } else {
+                WelcomeView(onCreate: { showNewProject = true }, onSample: createSample)
+            }
+        }
+        .tint(DesignTheme.brandPrimary)
+        .sheet(isPresented: $showNewProject) {
+            NewProjectSheet { project in
+                selectedProject = project
+            }
+        }
+        .onAppear {
+            SeedCatalog.populate(context: modelContext)
+            if selectedProject == nil {
+                selectedProject = projects.first
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .sepNewProject)) { _ in
+            showNewProject = true
+        }
+    }
+
+    private func createSample() {
+        let project = SeedCatalog.makeSampleProject(context: modelContext)
+        selectedProject = project
+    }
+}
+
+struct ProjectSidebar: View {
+    let projects: [DesignProject]
+    @Binding var selected: DesignProject?
+    var onNew: () -> Void
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(projects, id: \.id) { project in
+                    Button {
+                        selected = project
+                    } label: {
+                        ProjectRow(project: project)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(6)
+                            .background(
+                                selected?.id == project.id
+                                ? DesignTheme.brandTertiary.opacity(0.7)
+                                : Color.clear,
+                                in: RoundedRectangle(cornerRadius: 8)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text("Projects")
+            }
+
+            Section("Industry Bridge") {
+                ForEach(IndustryBridge.capabilities.prefix(4)) { cap in
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(cap.product).font(.caption.weight(.semibold))
+                            Text(cap.sepFeature).font(.caption2).foregroundStyle(DesignTheme.muted)
+                        }
+                    } icon: {
+                        Image(systemName: cap.mode.systemImage)
+                            .foregroundStyle(DesignTheme.brandAccent)
+                    }
+                }
+                NavigationLink {
+                    IndustryBridgeView()
+                } label: {
+                    Text("All 14 tools →")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(DesignTheme.brandAccent)
+                }
+            }
+        }
+        .navigationTitle("SEP Design")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: onNew) {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("New Project")
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink {
+                    DesignSettingsView()
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .background(DesignTheme.surface)
+    }
+}
+
+struct ProjectRow: View {
+    let project: DesignProject
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(project.name)
+                .font(.headline)
+                .foregroundStyle(DesignTheme.onSurface)
+            Text(project.clientName.isEmpty ? "No client" : project.clientName)
+                .font(.caption)
+                .foregroundStyle(DesignTheme.muted)
+            HStack(spacing: 6) {
+                StatusChip(status: project.status)
+                Text("\(project.sheets.count) sheets")
+                    .font(.caption2)
+                    .foregroundStyle(DesignTheme.muted)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct StatusChip: View {
+    let status: ProjectStatus
+
+    var body: some View {
+        Text(status.rawValue)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(DesignTheme.brandTertiary, in: Capsule())
+            .foregroundStyle(DesignTheme.brandNavy)
+    }
+}
+
+struct WelcomeView: View {
+    var onCreate: () -> Void
+    var onSample: () -> Void
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [DesignTheme.surface, DesignTheme.brandTertiary.opacity(0.45), DesignTheme.surface],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 28) {
+                VStack(spacing: 8) {
+                    Image(systemName: "square.grid.3x3.topleft.filled")
+                        .font(.system(size: 48))
+                        .foregroundStyle(DesignTheme.brandGold)
+                    Text("SEP Design")
+                        .font(.system(size: 42, weight: .bold, design: .serif))
+                        .foregroundStyle(DesignTheme.brandNavy)
+                    Text(DesignPolicy.tagline)
+                        .font(.title3)
+                        .foregroundStyle(DesignTheme.muted)
+                    Text("Native iPad drawing for IDS, access control, infrastructure & video surveillance.\nVisio · AutoCAD · PDF import/export.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(DesignTheme.onSurface)
+                        .frame(maxWidth: 520)
+                }
+
+                HStack(spacing: 16) {
+                    Button(action: onCreate) {
+                        Label("New Project", systemImage: "plus.circle.fill")
+                            .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DesignTheme.brandNavy)
+
+                    Button(action: onSample) {
+                        Label("Load Sample Campus", systemImage: "building.2")
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                HStack(spacing: 12) {
+                    FormatBadge(format: .visio)
+                    FormatBadge(format: .cad)
+                    FormatBadge(format: .pdf)
+                    Text("symbols & round-trip")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+                }
+            }
+            .padding(40)
+        }
+    }
+}
+
+
+// ===== FILE: Views/Settings/DesignSettingsView.swift =====
+
+import SwiftUI
+import SwiftData
+
+struct DesignSettingsView: View {
+    var body: some View {
+        Form {
+            Section("SEP Design") {
+                LabeledContent("Product", value: DesignPolicy.productName)
+                LabeledContent("Version", value: DesignPolicy.version)
+                LabeledContent("Bundle ID", value: DesignPolicy.bundleId)
+                LabeledContent("Publisher", value: DesignPolicy.legalName)
+            }
+            Section("Capabilities") {
+                Label("Drawing & Visio/CAD symbols", systemImage: "checkmark.circle.fill")
+                Label("Camera coverage (JVSG / Axis)", systemImage: "checkmark.circle.fill")
+                Label("Schematics (ConnectCAD / XTEN-AV)", systemImage: "checkmark.circle.fill")
+                Label("Estimating (ConEst / Jetbuilt / D-Tools)", systemImage: "checkmark.circle.fill")
+                Label("Documents (Simply Wise / SiteOwl / Bluebeam)", systemImage: "checkmark.circle.fill")
+                Label("Import Visio · AutoCAD · PDF", systemImage: "checkmark.circle.fill")
+                Label("Export PDF · DXF · Visio XML · BOM", systemImage: "checkmark.circle.fill")
+            }
+            .foregroundStyle(DesignTheme.success)
+            Section("Import formats") {
+                Text(DesignPolicy.supportedImport.joined(separator: ", "))
+                    .font(.caption.monospaced())
+            }
+            Section("Export formats") {
+                Text(DesignPolicy.supportedExport.joined(separator: ", "))
+                    .font(.caption.monospaced())
+            }
+            Section("Privacy") {
+                Text("SEP Design stores projects on-device with SwiftData. Files you import stay in your project vault. No tracking SDKs are embedded.")
+                    .font(.caption)
+                    .foregroundStyle(DesignTheme.muted)
+            }
+        }
+        .navigationTitle("Settings")
+    }
+}
+
+
+// ===== FILE: Views/Survey/SurveySchematicViews.swift =====
+
+import SwiftUI
+import SwiftData
+
+/// magicplan + System Surveyor inspired site survey workflow.
+struct SurveyView: View {
+    @Bindable var project: DesignProject
+    var sheet: DesignSheet?
+    @State private var roomName = ""
+    @State private var lengthFt = ""
+    @State private var widthFt = ""
+    @State private var notes = ""
+
+    var body: some View {
+        HStack(spacing: 0) {
+            List {
+                Section("Site Survey") {
+                    Text("Walk the site, capture rooms, and drop devices — inspired by System Surveyor & magicplan.")
+                        .font(.caption)
+                        .foregroundStyle(DesignTheme.muted)
+                    LabeledContent("Project", value: project.name)
+                    LabeledContent("Address", value: project.siteAddress.isEmpty ? "—" : project.siteAddress)
+                }
+                Section("Add Room (magicplan-style)") {
+                    TextField("Room name", text: $roomName)
+                    HStack {
+                        TextField("Length ft", text: $lengthFt)
+                            .keyboardType(.decimalPad)
+                        TextField("Width ft", text: $widthFt)
+                            .keyboardType(.decimalPad)
+                    }
+                    TextField("Survey notes", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                    Button("Add Room Label to Sheet") { addRoom() }
+                        .disabled(roomName.isEmpty || sheet == nil)
+                }
+                Section("Survey Checklist") {
+                    checklist("Floor plan imported (PDF / CAD)")
+                    checklist("IDS device locations verified")
+                    checklist("Door hardware / ACS surveyed")
+                    checklist("Camera mounting heights noted")
+                    checklist("IDF / MDF pathway documented")
+                    checklist("Photos filed in Documents")
+                }
+            }
+            .frame(maxWidth: 420)
+
+            Divider()
+
+            if let sheet {
+                DrawingCanvas(project: project, sheet: sheet)
+            } else {
+                ContentUnavailableView("No Sheet", systemImage: "map")
+            }
+        }
+    }
+
+    private func checklist(_ title: String) -> some View {
+        Label(title, systemImage: "checkmark.circle")
+            .foregroundStyle(DesignTheme.muted)
+    }
+
+    private func addRoom() {
+        guard let sheet else { return }
+        let label = PlacedDevice(
+            symbolID: "ann.room",
+            label: roomName,
+            tag: String(roomName.uppercased().prefix(6)),
+            discipline: .infrastructure,
+            x: 200 + Double(sheet.devices.count * 30),
+            y: 160
+        )
+        let l = Double(lengthFt) ?? 0
+        let w = Double(widthFt) ?? 0
+        label.notes = "\(l) × \(w) ft. \(notes)"
+        sheet.devices.append(label)
+        sheet.markups.append(MarkupAnnotation(
+            kind: .callout,
+            text: "\(roomName): \(Int(l))×\(Int(w)) ft",
+            x: label.x,
+            y: label.y + 40
+        ))
+        project.updatedAt = Date()
+        roomName = ""; lengthFt = ""; widthFt = ""; notes = ""
+    }
+}
+
+/// ConnectCAD + XTEN-AV style schematic / riser.
+struct SchematicView: View {
+    @Bindable var project: DesignProject
+    var sheet: DesignSheet?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Schematic / Riser")
+                    .font(.headline)
+                Spacer()
+                Text("Vectorworks ConnectCAD · XTEN-AV · D-Tools")
+                    .font(.caption)
+                    .foregroundStyle(DesignTheme.muted)
+            }
+            .padding()
+
+            if let sheet {
+                ScrollView([.horizontal, .vertical]) {
+                    ZStack(alignment: .topLeading) {
+                        SchematicGrid()
+                        ForEach(Array(schematicDevices(from: sheet).enumerated()), id: \.element.id) { index, device in
+                            SchematicCard(device: device)
+                                .position(x: 140 + CGFloat(index % 4) * 200, y: 100 + CGFloat(index / 4) * 140)
+                        }
+                        // Cable runs between controllers and field devices
+                        ForEach(connectionPairs(from: sheet), id: \.0.id) { pair in
+                            Path { path in
+                                path.move(to: CGPoint(x: 140, y: 100))
+                                path.addLine(to: CGPoint(x: 340, y: 100))
+                            }
+                            .stroke(DesignTheme.brandAccent.opacity(0.4), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                            .opacity(pair.0.id == pair.1.id ? 0 : 1)
+                        }
+                    }
+                    .frame(width: 900, height: 700)
+                    .padding()
+                }
+            } else {
+                ContentUnavailableView("Open a sheet to build schematics", systemImage: "point.3.connected.trianglepath.dotted")
+            }
+        }
+        .background(DesignTheme.surface)
+    }
+
+    private func schematicDevices(from sheet: DesignSheet) -> [PlacedDevice] {
+        sheet.devices.sorted { $0.tag < $1.tag }
+    }
+
+    private func connectionPairs(from sheet: DesignSheet) -> [(PlacedDevice, PlacedDevice)] {
+        let controllers = sheet.devices.filter {
+            $0.symbolID.contains("controller") || $0.symbolID.contains("panel") || $0.symbolID.contains("nvr") || $0.symbolID.contains("switch")
+        }
+        let field = sheet.devices.filter { !controllers.contains(where: { $0.id == $1.id }) }
+        guard let c = controllers.first, let f = field.first else { return [] }
+        return [(c, f)]
+    }
+}
+
+struct SchematicCard: View {
+    let device: PlacedDevice
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                SymbolGlyphView(symbolID: device.symbolID, size: 28, tint: device.discipline.color)
+                VStack(alignment: .leading) {
+                    Text(device.tag).font(.caption.monospaced().weight(.bold))
+                    Text(device.label).font(.caption2).lineLimit(1)
+                }
+            }
+            Divider()
+            Text("Ports: PWR · DATA · ALARM")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(DesignTheme.muted)
+        }
+        .padding(10)
+        .frame(width: 160)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(device.discipline.color.opacity(0.5)))
+        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+    }
+}
+
+struct SchematicGrid: View {
+    var body: some View {
+        Canvas { context, size in
+            var path = Path()
+            for x in stride(from: 0.0, through: size.width, by: 20) {
+                path.move(to: CGPoint(x: x, y: 0)); path.addLine(to: CGPoint(x: x, y: size.height))
+            }
+            for y in stride(from: 0.0, through: size.height, by: 20) {
+                path.move(to: CGPoint(x: 0, y: y)); path.addLine(to: CGPoint(x: size.width, y: y))
+            }
+            context.stroke(path, with: .color(DesignTheme.canvasGrid), lineWidth: 0.5)
+        }
+        .frame(width: 900, height: 700)
+    }
+}
+

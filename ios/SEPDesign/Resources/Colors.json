@@ -1,0 +1,21 @@
+{
+  "info" : {
+    "author" : "NVSSMD",
+    "version" : 1
+  },
+  "colors" : [
+    {
+      "color" : {
+        "color-space" : "srgb",
+        "components" : {
+          "alpha" : "1.000",
+          "blue" : "0.227",
+          "green" : "0.106",
+          "red" : "0.039"
+        }
+      },
+      "idiom" : "universal",
+      "name" : "BrandNavy"
+    }
+  ]
+}
