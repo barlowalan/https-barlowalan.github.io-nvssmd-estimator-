@@ -41,4 +41,4 @@
 - Multi-user cloud licensing (paid tiers)
 
 ## SEP Draw (iPad drawing)
-Native SwiftUI iPad app unifying survey, Visio/CAD symbols, FOV coverage, schematics, estimating, Bluebeam-style markup, and Visio/AutoCAD/PDF import-export. Bundle ID `com.nvssmd.sepdraw`. SwiftUI sources also exported as `.txt` under `ios/SEPDraw/ExportTXT/`.
+Single-file SwiftUI Xcode Copy/Paste Edition (`ios/SEPDraw/SEPDrawApp.swift`). Bundle ID `com.nvssmd.sepdraw`. Exports: Visio SVG, PDF, AutoCAD DXF only. Also mirrored as `.txt` under `ios/SEPDraw/ExportTXT/`.
