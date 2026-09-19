@@ -1,24 +1,24 @@
-# SEP Draw — Foundation (Xcode Copy/Paste)
+# SEP Draw — Xcode Copy/Paste Edition
 
-Compact iOS 17+ SwiftUI canvas starter for Security Estimator Pro · Draw.
+iOS 17+ SwiftUI security drawing app (IDS · access · CCTV · infrastructure).
 
 **Source of truth:** `SEPDrawApp.swift`
 
-## What’s in this foundation
+## Features
 
-- Sheet-aware device placements (`sheetIndex` / `activePDFPageIndex`)
-- Device palette (camera, card reader, door contact, panel, switch)
-- Layers model (visibility / lock hooks)
-- Place vs Select tools
-- Selection + Delete
-
-## Next (not in this file yet)
-
-PDF import, calibration, cable routing, revisions, BOM sync.
+- Device palette with discipline mapping
+- Sheet-aware layers (visible / locked)
+- PDF import + multi-page sheet stepper
+- Two-point scale calibration (feet)
+- Two-point cable routing with takeoff
+- Live BOM from placed devices
+- Drawing revisions
+- Select / place / calibrate / route tools + delete
 
 ## Xcode setup
 
 1. New **iOS App** named `SEPDraw` · SwiftUI · **iOS 17+** (iPad recommended)
 2. Delete generated App / ContentView files
 3. Add `SEPDrawApp.swift` and paste this repo’s file (or `ExportTXT/SEPDraw_XcodeCopyPaste.swift.txt`)
-4. Run on simulator or device
+4. Link frameworks if needed: **PDFKit** (system)
+5. Run on simulator or device
