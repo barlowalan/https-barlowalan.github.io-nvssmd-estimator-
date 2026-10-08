@@ -9,6 +9,7 @@ Cross-platform on-site estimating for security contractors.
 | **Android** (Jetpack Compose) | [`android/SEPExplorer`](android/SEPExplorer) |
 | **Expo** (iPad + Android shared UI) | [`frontend`](frontend) |
 | **API** | [`backend`](backend) |
+| **USB VMS Drive** (Ubuntu, ≤24 cameras) | [`vms-usb-drive`](vms-usb-drive) |
 | **App Store package** | [`stores/appstore`](stores/appstore) |
 | **Play Store package** | [`stores/playstore`](stores/playstore) |
 

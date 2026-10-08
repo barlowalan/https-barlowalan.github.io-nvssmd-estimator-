@@ -1,0 +1,32 @@
+# USB VMS Drive — Ubuntu install stack
+# Frigate NVR + go2rtc (bundled) sized for up to 24 cameras.
+
+services:
+  frigate:
+    container_name: vms
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    shm_size: "256mb"
+    devices: []
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${VMS_CONFIG_DIR:-/opt/vms/config}:/config
+      - ${VMS_DATA_DIR:-/opt/vms/data}:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "${VMS_HTTP_PORT:-5000}:5000"
+      - "${VMS_RTSP_PORT:-8554}:8554"
+      - "${VMS_WEBRTC_PORT:-8555}:8555/tcp"
+      - "${VMS_WEBRTC_PORT:-8555}:8555/udp"
+    environment:
+      - FRIGATE_RTSP_PASSWORD=${CAMERA_PASSWORD:-admin}
+      - TZ=${VMS_TZ:-America/New_York}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/api/version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

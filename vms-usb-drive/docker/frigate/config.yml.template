@@ -1,0 +1,45 @@
+# VMS — Frigate base config (generated/updated by install & detect scripts)
+# Supports up to {{MAX_CAMERAS}} cameras.
+
+mqtt:
+  enabled: false
+
+go2rtc:
+  streams: {}
+
+cameras: {}
+
+ffmpeg:
+  hwaccel_args: []
+
+detect:
+  enabled: {{DETECTION_ENABLED}}
+  width: 1280
+  height: 720
+  fps: 5
+
+record:
+  enabled: true
+  retain:
+    days: {{RECORD_RETAIN_DAYS}}
+    mode: motion
+  events:
+    retain:
+      default: {{RECORD_RETAIN_DAYS}}
+      mode: motion
+
+snapshots:
+  enabled: true
+  retain:
+    default: {{RECORD_RETAIN_DAYS}}
+
+ui:
+  timezone: {{VMS_TZ}}
+
+birdseye:
+  enabled: true
+  mode: continuous
+  width: 1280
+  height: 720
+
+version: 0.14

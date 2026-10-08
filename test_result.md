@@ -6,7 +6,7 @@
 # BOTH MAIN_AGENT AND TESTING_AGENT MUST PRESERVE THIS ENTIRE BLOCK
 
 # Communication Protocol:
-# If the `testing_agent` is available, main agent should delegate all testing tasks to it.
+# If the `testing_agent` is available, main agent should delegate all testing tasks to the testing agent.
 #
 # You have access to a file called `test_result.md`. This file contains the complete testing state
 # and history, and is the primary means of communication between main and the testing agent.
@@ -76,7 +76,7 @@
 #    - Whenever user reports issue in the app, if we have testing agent and task_result.md file so find the appropriate task for that and append in status_history of that task to contain the user concern and problem as well 
 #
 # 3. Track Stuck Tasks:
-#    - Monitor which tasks have high stuck_count values or where you are fixing same issue again and again, analyze that when you read task_result.md
+#    - Monitor which tasks have high stuck_count values or where you are fixing same issue again and again, analyze that when you read test_result.md
 #    - For persistent issues, use websearch tool to find solutions
 #    - Pay special attention to tasks in the stuck_tasks list
 #    - When you fix an issue with a stuck task, don't reset the stuck_count until the testing agent confirms it's working
@@ -101,3 +101,74 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: Design a VMS. Create a USB VMS Drive for installing VMS onto a computer running Ubuntu. Able to detect up to 24 cameras. No branding.
+
+backend:
+  - task: "USB VMS Drive package layout and docs"
+    implemented: true
+    working: true
+    file: "vms-usb-drive/"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Created vms-usb-drive with install, prepare-usb, docs, branding, VERSION 1.0.0"
+
+  - task: "Camera discovery capped at 24"
+    implemented: true
+    working: true
+    file: "vms-usb-drive/scripts/detect_cameras.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "ONVIF WS-Discovery + optional nmap/ffprobe; unit tests confirm hard cap of 24"
+
+  - task: "Apply cameras into Frigate config"
+    implemented: true
+    working: true
+    file: "vms-usb-drive/scripts/apply_cameras.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Merges cameras.yaml into Frigate go2rtc + cameras; truncates >24"
+
+  - task: "Ubuntu installer scripts"
+    implemented: true
+    working: true
+    file: "vms-usb-drive/scripts/install.sh"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "bash -n clean; prepare-usb dry-run OK; full Docker install not run in CI VM (no cameras/docker pull needed for unit coverage)"
+
+frontend: []
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Camera discovery capped at 24"
+    - "Apply cameras into Frigate config"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "USB VMS Drive under vms-usb-drive/ with no branding (/opt/vms, vms.service, VMS-Drive). Tests pass; Docker live install deferred."
