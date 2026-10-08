@@ -1,4 +1,4 @@
-# NVSSMD VMS Architecture
+# VMS Architecture
 
 ```
 ┌──────────────── USB VMS Drive ────────────────┐
@@ -9,9 +9,9 @@
 └───────────────────────┬───────────────────────┘
                         │ sudo ./install.sh
                         ▼
-┌──────────── Ubuntu host (/opt/nvssmd-vms) ────┐
-│  systemd: nvssmd-vms.service                  │
-│  docker compose → container nvssmd-vms        │
+┌──────────── Ubuntu host (/opt/vms) ────┐
+│  systemd: vms.service                  │
+│  docker compose → container vms        │
 │       │                                       │
 │       ├─ Frigate UI :5000                     │
 │       ├─ RTSP restream :8554                  │

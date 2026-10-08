@@ -1,4 +1,4 @@
-# Install NVSSMD VMS from USB (Ubuntu)
+# Install VMS from USB (Ubuntu)
 
 ## Prepare the USB stick (office / shop)
 
@@ -10,7 +10,7 @@ sync
 sudo umount /mnt/vms-usb
 ```
 
-Label suggestion: **NVSSMD-VMS**
+Label suggestion: **VMS**
 
 ## On the site Ubuntu PC
 
@@ -19,7 +19,7 @@ Label suggestion: **NVSSMD-VMS**
 3. Open Terminal:
 
 ```bash
-cd /media/$USER/*/NVSSMD-VMS-Drive   # adjust mount path
+cd /media/$USER/*/VMS-Drive   # adjust mount path
 chmod +x install.sh scripts/*.sh scripts/*.py
 ./scripts/check-requirements.sh
 ```
@@ -40,25 +40,25 @@ sudo ./install.sh
 The installer will:
 
 - Install Docker if missing  
-- Deploy Frigate under `/opt/nvssmd-vms`  
+- Deploy Frigate under `/opt/vms`  
 - Discover up to **24** cameras  
-- Enable `nvssmd-vms.service` for reboot persistence  
+- Enable `vms.service` for reboot persistence  
 
 6. Open the UI printed at the end, e.g. `http://192.168.1.50:5000`
 
 ## After install
 
 ```bash
-sudo /opt/nvssmd-vms/bin/detect-cameras.sh
-sudo /opt/nvssmd-vms/bin/apply-cameras.sh
-/opt/nvssmd-vms/bin/status.sh
+sudo /opt/vms/bin/detect-cameras.sh
+sudo /opt/vms/bin/apply-cameras.sh
+/opt/vms/bin/status.sh
 ```
 
 ## Uninstall
 
 ```bash
-sudo /path/to/NVSSMD-VMS-Drive/scripts/uninstall.sh        # keep recordings
-sudo /path/to/NVSSMD-VMS-Drive/scripts/uninstall.sh --purge # delete all
+sudo /path/to/VMS-Drive/scripts/uninstall.sh        # keep recordings
+sudo /path/to/VMS-Drive/scripts/uninstall.sh --purge # delete all
 ```
 
 ## Offline / no-pull installs

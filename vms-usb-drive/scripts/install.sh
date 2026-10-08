@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NVSSMD USB VMS Drive — install Video Management System on Ubuntu
+# USB VMS Drive — install Video Management System on Ubuntu
 # Supports detection and recording of up to 24 cameras.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,7 +14,7 @@ usage() {
   cat <<EOF
 Usage: sudo $(basename "$0") [options]
 
-Install NVSSMD VMS (Frigate-based) from this USB drive onto Ubuntu.
+Install VMS (Frigate-based) from this USB drive onto Ubuntu.
 
 Options:
   --env FILE          Use site env file (default: config/vms.env or example)
@@ -45,7 +45,7 @@ require_root
 ubuntu_or_die
 
 VERSION="$(vms_version)"
-log "NVSSMD USB VMS Drive installer v${VERSION}"
+log "USB VMS Drive installer v${VERSION}"
 log "Hard camera limit: ${MAX_CAMERAS_HARD_LIMIT}"
 
 # Resolve env
@@ -118,9 +118,9 @@ if [[ -f "${CAMERAS_YAML}" ]]; then
     --max "${VMS_MAX_CAMERAS}" || warn "Could not apply cameras yet (empty inventory is OK)."
 fi
 
-# Branding / README on host
+# Host README
 cat > "${INSTALL_ROOT}/README.txt" <<EOF
-NVSSMD VMS — installed from USB VMS Drive v${VERSION}
+VMS — installed from USB VMS Drive v${VERSION}
 Site: ${VMS_SITE_NAME}
 Max cameras: ${VMS_MAX_CAMERAS}
 UI port: ${VMS_HTTP_PORT}
@@ -133,9 +133,9 @@ Status:          ${INSTALL_ROOT}/bin/status.sh
 EOF
 
 # systemd unit for boot persistence (docker restart policy also covers this)
-cat > /etc/systemd/system/nvssmd-vms.service <<EOF
+cat > /etc/systemd/system/vms.service <<EOF
 [Unit]
-Description=NVSSMD Video Management System
+Description=Video Management System
 Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
@@ -153,7 +153,7 @@ TimeoutStartSec=0
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable nvssmd-vms.service
+systemctl enable vms.service
 
 export VMS_CONFIG_DIR VMS_DATA_DIR VMS_HTTP_PORT VMS_RTSP_PORT VMS_WEBRTC_PORT VMS_TZ CAMERA_PASSWORD
 cd "${INSTALL_ROOT}"
@@ -168,7 +168,7 @@ HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 HOST_IP="${HOST_IP:-127.0.0.1}"
 
 log "============================================================"
-log " NVSSMD VMS installed successfully (v${VERSION})"
+log " VMS installed successfully (v${VERSION})"
 log " Site:          ${VMS_SITE_NAME}"
 log " Max cameras:   ${VMS_MAX_CAMERAS}"
 log " Web UI:        http://${HOST_IP}:${VMS_HTTP_PORT}"

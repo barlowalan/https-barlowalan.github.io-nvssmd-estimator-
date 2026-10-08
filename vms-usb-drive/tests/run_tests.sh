@@ -16,9 +16,9 @@ echo "== prepare-usb dry layout =="
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 "${ROOT}/scripts/prepare-usb.sh" "${TMP}"
-test -f "${TMP}/NVSSMD-VMS-Drive/VERSION"
-test -f "${TMP}/INSTALL-NVSSMD-VMS.txt"
-test -x "${TMP}/NVSSMD-VMS-Drive/install.sh"
+test -f "${TMP}/VMS-Drive/VERSION"
+test -f "${TMP}/INSTALL-VMS.txt"
+test -x "${TMP}/VMS-Drive/install.sh"
 echo "  OK USB layout under ${TMP}"
 
 echo "All VMS USB Drive tests passed."

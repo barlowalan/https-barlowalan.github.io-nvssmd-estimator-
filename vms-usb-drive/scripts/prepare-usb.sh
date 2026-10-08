@@ -10,7 +10,7 @@ if [[ -z "${TARGET}" ]]; then
   cat <<EOF
 Usage: $(basename "$0") /path/to/usb/mount
 
-Copies the NVSSMD USB VMS Drive package onto a USB stick so you can
+Copies the USB VMS Drive package onto a USB stick so you can
 install VMS on an Ubuntu PC (up to ${MAX_CAMERAS_HARD_LIMIT} cameras).
 
 Example:
@@ -25,7 +25,7 @@ fi
 
 [[ -d "${TARGET}" ]] || die "Target mount not found: ${TARGET}"
 
-DEST="${TARGET%/}/NVSSMD-VMS-Drive"
+DEST="${TARGET%/}/VMS-Drive"
 VERSION="$(vms_version)"
 log "Preparing USB VMS Drive v${VERSION} → ${DEST}"
 
@@ -49,17 +49,17 @@ else
 fi
 
 # Autorun-friendly entry points at USB root
-cat > "${TARGET%/}/INSTALL-NVSSMD-VMS.txt" <<EOF
-NVSSMD USB VMS Drive v${VERSION}
+cat > "${TARGET%/}/INSTALL-VMS.txt" <<EOF
+USB VMS Drive v${VERSION}
 ================================
 Install Video Management System on Ubuntu (max ${MAX_CAMERAS_HARD_LIMIT} cameras).
 
 1. Boot the target PC into Ubuntu 22.04 or 24.04 LTS (already installed).
 2. Plug in this USB drive and open a terminal.
-3. Find the mount point, e.g. /media/\$USER/NVSSMD or /mnt/vms-usb
+3. Find the mount point, e.g. /media/\$USER/<USB-LABEL> or /mnt/vms-usb
 4. Run:
 
-   cd /media/\$USER/<USB>/NVSSMD-VMS-Drive
+   cd /media/\$USER/<USB>/VMS-Drive
    chmod +x install.sh scripts/*.sh
    ./scripts/check-requirements.sh
    sudo ./install.sh
@@ -70,14 +70,14 @@ Install Video Management System on Ubuntu (max ${MAX_CAMERAS_HARD_LIMIT} cameras
    sudo ./scripts/detect-cameras.sh
    sudo ./scripts/apply-cameras.sh
 
-Publisher: NVSSMD, LLC — https://nvssmd.com
+
 EOF
 
 cp -f "${VMS_ROOT}/install.sh" "${DEST}/install.sh" 2>/dev/null || true
 chmod +x "${DEST}/install.sh" "${DEST}/scripts/"*.sh "${DEST}/scripts/"*.py || true
 
 # Optional: write a simple volume label hint
-echo "NVSSMD-VMS" > "${DEST}/VOLUME_LABEL.txt"
+echo "VMS" > "${DEST}/VOLUME_LABEL.txt"
 
 log "USB contents ready at ${DEST}"
 log "Safely eject after: sync && umount ${TARGET}"

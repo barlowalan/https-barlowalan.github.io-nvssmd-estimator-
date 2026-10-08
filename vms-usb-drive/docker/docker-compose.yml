@@ -1,17 +1,17 @@
-# NVSSMD USB VMS Drive — Ubuntu install stack
+# USB VMS Drive — Ubuntu install stack
 # Frigate NVR + go2rtc (bundled) sized for up to 24 cameras.
 
 services:
   frigate:
-    container_name: nvssmd-vms
+    container_name: vms
     image: ghcr.io/blakeblackshear/frigate:stable
     restart: unless-stopped
     shm_size: "256mb"
     devices: []
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${VMS_CONFIG_DIR:-/opt/nvssmd-vms/config}:/config
-      - ${VMS_DATA_DIR:-/opt/nvssmd-vms/data}:/media/frigate
+      - ${VMS_CONFIG_DIR:-/opt/vms/config}:/config
+      - ${VMS_DATA_DIR:-/opt/vms/data}:/media/frigate
       - type: tmpfs
         target: /tmp/cache
         tmpfs:

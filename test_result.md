@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: Design a VMS. Create a USB VMS Drive for installing VMS onto a computer running Ubuntu. Able to detect up to 24 cameras.
+user_problem_statement: Design a VMS. Create a USB VMS Drive for installing VMS onto a computer running Ubuntu. Able to detect up to 24 cameras. No branding.
 
 backend:
   - task: "USB VMS Drive package layout and docs"

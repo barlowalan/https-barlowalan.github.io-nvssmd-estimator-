@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Show NVSSMD VMS status, camera count, and UI URL.
+# Show VMS status, camera count, and UI URL.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
@@ -18,7 +18,7 @@ fi
 HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 HOST_IP="${HOST_IP:-127.0.0.1}"
 
-echo "NVSSMD VMS status"
+echo "VMS status"
 echo "  version:     $(vms_version)"
 echo "  site:        ${VMS_SITE_NAME}"
 echo "  max cameras: ${VMS_MAX_CAMERAS}"
@@ -28,7 +28,7 @@ echo "  data:        ${VMS_DATA_DIR}"
 
 if have_cmd docker; then
   echo "  container:"
-  docker ps --filter name=nvssmd-vms --format '    {{.Names}}  {{.Status}}  {{.Ports}}' || true
+  docker ps --filter name=vms --format '    {{.Names}}  {{.Status}}  {{.Ports}}' || true
 fi
 
 CAMERAS_YAML="${VMS_CONFIG_DIR}/cameras.yaml"
@@ -55,6 +55,6 @@ else
   echo "  cameras:     (not installed yet)"
 fi
 
-if systemctl is-enabled nvssmd-vms.service >/dev/null 2>&1; then
-  echo "  systemd:     enabled ($(systemctl is-active nvssmd-vms.service 2>/dev/null || echo unknown))"
+if systemctl is-enabled vms.service >/dev/null 2>&1; then
+  echo "  systemd:     enabled ($(systemctl is-active vms.service 2>/dev/null || echo unknown))"
 fi

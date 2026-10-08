@@ -1,10 +1,9 @@
-# NVSSMD USB VMS Drive
+# USB VMS Drive
 
 Field kit that installs an on-premises **Video Management System** on an **Ubuntu** PC and discovers up to **24** IP cameras.
 
 | | |
 | --- | --- |
-| **Publisher** | NVSSMD, LLC |
 | **Version** | see [`VERSION`](VERSION) |
 | **OS** | Ubuntu 20.04 / 22.04 / 24.04 LTS |
 | **Cameras** | ONVIF + RTSP, hard limit **24** |
@@ -13,7 +12,7 @@ Field kit that installs an on-premises **Video Management System** on an **Ubunt
 ## Quick start (site PC)
 
 ```bash
-cd /media/$USER/<USB>/NVSSMD-VMS-Drive
+cd /media/$USER/<USB>/VMS-Drive
 ./scripts/check-requirements.sh
 sudo ./install.sh
 ```
@@ -39,7 +38,6 @@ See [`docs/INSTALL.md`](docs/INSTALL.md) and [`docs/ARCHITECTURE.md`](docs/ARCHI
 vms-usb-drive/
 ├── install.sh                 # USB entry point
 ├── VERSION
-├── branding/PRODUCT.md
 ├── config/
 │   ├── vms.env.example
 │   └── cameras.yaml.example

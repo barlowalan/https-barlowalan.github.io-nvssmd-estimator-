@@ -1,4 +1,4 @@
-# NVSSMD VMS — Frigate base config (generated/updated by install & detect scripts)
+# VMS — Frigate base config (generated/updated by install & detect scripts)
 # Supports up to {{MAX_CAMERAS}} cameras.
 
 mqtt:

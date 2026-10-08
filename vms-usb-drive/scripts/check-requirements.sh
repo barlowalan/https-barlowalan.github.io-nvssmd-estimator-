@@ -13,7 +13,7 @@ ok()   { echo "  OK  $*"; PASS=$((PASS + 1)); }
 bad()  { echo "  FAIL $*"; FAIL=$((FAIL + 1)); }
 info() { echo "  --  $*"; }
 
-echo "NVSSMD USB VMS Drive — requirements check"
+echo "USB VMS Drive — requirements check"
 echo "  package version: $(vms_version)"
 echo "  camera limit:    ${MAX_CAMERAS_HARD_LIMIT}"
 

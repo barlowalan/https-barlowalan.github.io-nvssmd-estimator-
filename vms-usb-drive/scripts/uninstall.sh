@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Remove NVSSMD VMS services (keeps recordings unless --purge).
+# Remove VMS services (keeps recordings unless --purge).
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
@@ -18,9 +18,9 @@ else
   load_env_file "${VMS_ROOT}/config/vms.env.example"
 fi
 
-log "Stopping NVSSMD VMS…"
-systemctl disable --now nvssmd-vms.service 2>/dev/null || true
-rm -f /etc/systemd/system/nvssmd-vms.service
+log "Stopping VMS…"
+systemctl disable --now vms.service 2>/dev/null || true
+rm -f /etc/systemd/system/vms.service
 systemctl daemon-reload
 
 if [[ -f "${INSTALL_ROOT}/docker-compose.yml" ]] && have_cmd docker; then

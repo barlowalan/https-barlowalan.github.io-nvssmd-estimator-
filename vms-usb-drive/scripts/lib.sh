@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Shared helpers for NVSSMD USB VMS Drive scripts.
+# Shared helpers for USB VMS Drive scripts.
 set -euo pipefail
 
 VMS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="${VMS_ROOT}/VERSION"
-DEFAULT_INSTALL_ROOT="/opt/nvssmd-vms"
+DEFAULT_INSTALL_ROOT="/opt/vms"
 MAX_CAMERAS_HARD_LIMIT=24
 
-log()  { printf '[nvssmd-vms] %s\n' "$*"; }
-warn() { printf '[nvssmd-vms] WARNING: %s\n' "$*" >&2; }
-die()  { printf '[nvssmd-vms] ERROR: %s\n' "$*" >&2; exit 1; }
+log()  { printf '[vms] %s\n' "$*"; }
+warn() { printf '[vms] WARNING: %s\n' "$*" >&2; }
+die()  { printf '[vms] ERROR: %s\n' "$*" >&2; exit 1; }
 
 require_root() {
   if [[ "${EUID}" -ne 0 ]]; then
@@ -33,7 +33,7 @@ load_env_file() {
     source "${env_file}"
     set +a
   fi
-  VMS_SITE_NAME="${VMS_SITE_NAME:-NVSSMD Site}"
+  VMS_SITE_NAME="${VMS_SITE_NAME:-Site}"
   VMS_TZ="${VMS_TZ:-America/New_York}"
   VMS_MAX_CAMERAS="${VMS_MAX_CAMERAS:-24}"
   VMS_DATA_DIR="${VMS_DATA_DIR:-${DEFAULT_INSTALL_ROOT}/data}"

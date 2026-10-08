@@ -32,7 +32,7 @@ python3 "${SCRIPT_DIR}/apply_cameras.py" \
 
 COMPOSE_DIR="${DEFAULT_INSTALL_ROOT}"
 if [[ -f "${COMPOSE_DIR}/docker-compose.yml" ]] && have_cmd docker; then
-  log "Restarting nvssmd-vms…"
+  log "Restarting vms…"
   (cd "${COMPOSE_DIR}" && docker compose up -d --force-recreate frigate)
 fi
 

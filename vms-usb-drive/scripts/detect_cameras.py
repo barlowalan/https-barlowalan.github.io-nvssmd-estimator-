@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NVSSMD VMS — discover ONVIF / RTSP cameras on the LAN (max 24)."""
+"""VMS — discover ONVIF / RTSP cameras on the LAN (max 24)."""
 
 from __future__ import annotations
 
@@ -273,7 +273,7 @@ def merge_discoveries(
 
 def to_yaml(cameras: list[Camera], max_cameras: int) -> str:
     lines = [
-        f"# NVSSMD VMS camera inventory — generated {time.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"# VMS camera inventory — generated {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"max_cameras: {max_cameras}",
         "cameras:",
     ]
@@ -331,7 +331,7 @@ def main() -> int:
 
     if len(cameras) >= max_cameras:
         print(
-            f"[detect] capped at {max_cameras} cameras (NVSSMD USB VMS Drive limit).",
+            f"[detect] capped at {max_cameras} cameras (USB VMS Drive limit).",
             file=sys.stderr,
         )
 
