@@ -171,4 +171,4 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "Implemented NVSSMD USB VMS Drive under vms-usb-drive/. Ran ./tests/run_tests.sh (6 unit tests + bash -n + prepare-usb layout). Full sudo docker install deferred (needs network image pull)."
+    message: "USB VMS Drive under vms-usb-drive/ with no branding (/opt/vms, vms.service, VMS-Drive). Tests pass; Docker live install deferred."
